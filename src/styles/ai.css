@@ -1,0 +1,351 @@
+/* ============================================================
+   🤖 AI Chat Styles — المساعد الذكي
+   ============================================================ */
+
+/* ============================================================
+   FAB (الزرار العائم) — جوه SupportFabs
+   ============================================================ */
+.bai-fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  background: linear-gradient(135deg, #6C5CE7, #3B2FA8);
+  box-shadow: 0 8px 20px rgba(60, 40, 180, .45);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.bai-fab:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 12px 28px rgba(60, 40, 180, .6);
+}
+.bai-fab.active {
+  transform: scale(.95);
+}
+.bai-fab::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(108, 92, 231, .45);
+  animation: baiPulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes baiPulse {
+  0% { transform: scale(.9); opacity: .9; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { opacity: 0; }
+}
+.bai-fab .bai-label {
+  position: absolute;
+  inset-inline-end: calc(100% + 8px);
+  background: rgba(11, 29, 56, .94);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+.bai-fab:hover .bai-label { opacity: 1; }
+
+/* ============================================================
+   Overlay (الخلفية)
+   ============================================================ */
+.bai-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 29, 56, .55);
+  backdrop-filter: blur(4px);
+  z-index: 90;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+.bai-overlay.open { display: flex; }
+
+/* ============================================================
+   Panel (النافذة)
+   ============================================================ */
+.bai-panel {
+  width: min(460px, 100%);
+  height: min(86vh, 720px);
+  background: var(--paper, #FAF6EE);
+  border-radius: 22px 22px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -20px 60px rgba(11, 29, 56, .35);
+  animation: baiUp .28s cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes baiUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (min-width: 720px) {
+  .bai-overlay { align-items: center; padding: 24px; }
+  .bai-panel { border-radius: 22px; height: min(80vh, 680px); }
+}
+
+/* ============================================================
+   Head (رأس النافذة)
+   ============================================================ */
+.bai-head {
+  background: linear-gradient(135deg, #3B2FA8, #6C5CE7);
+  color: #fff;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.bai-head .bai-ava {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.bai-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+.bai-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  opacity: .82;
+}
+.bai-head .bai-tools {
+  margin-inline-start: auto;
+  display: flex;
+  gap: 8px;
+}
+.bai-head .bai-tools button {
+  background: rgba(255, 255, 255, .16);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.bai-head .bai-tools button:hover {
+  background: rgba(255, 255, 255, .3);
+}
+
+/* ============================================================
+   Body (الرسائل)
+   ============================================================ */
+.bai-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(180deg, #FAF6EE, #F1EADC);
+}
+.bai-msg {
+  max-width: 86%;
+  padding: 11px 15px;
+  border-radius: 16px;
+  font-size: 14.5px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  animation: baiIn .2s ease;
+}
+@keyframes baiIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.bai-msg.bot {
+  background: #fff;
+  color: var(--ink, #1B1B1B);
+  align-self: flex-start;
+  border-start-start-radius: 5px;
+  box-shadow: 0 3px 12px rgba(11, 29, 56, .09);
+}
+.bai-msg.me {
+  background: linear-gradient(135deg, #6C5CE7, #3B2FA8);
+  color: #fff;
+  align-self: flex-end;
+  border-end-end-radius: 5px;
+  box-shadow: 0 4px 14px rgba(60, 40, 180, .3);
+}
+.bai-msg.err {
+  background: #FDECEA;
+  color: #8B2A18;
+  align-self: flex-start;
+  border: 1px solid #F3C4BC;
+  font-size: 13.5px;
+}
+.bai-msg b { font-weight: 800; }
+.bai-msg code {
+  background: rgba(11, 29, 56, .08);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  direction: ltr;
+  display: inline-block;
+}
+.bai-msg .en {
+  direction: ltr;
+  text-align: left;
+  display: inline-block;
+}
+
+/* ============================================================
+   Typing (نقاط التفكير)
+   ============================================================ */
+.bai-typing {
+  align-self: flex-start;
+  background: #fff;
+  padding: 13px 18px;
+  border-radius: 16px;
+  border-start-start-radius: 5px;
+  display: flex;
+  gap: 5px;
+  box-shadow: 0 3px 12px rgba(11, 29, 56, .09);
+}
+.bai-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6C5CE7;
+  animation: baiDot 1.3s infinite;
+}
+.bai-typing span:nth-child(2) { animation-delay: .18s; }
+.bai-typing span:nth-child(3) { animation-delay: .36s; }
+@keyframes baiDot {
+  0%, 60%, 100% { opacity: .25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-5px); }
+}
+
+/* ============================================================
+   Quick Prompts
+   ============================================================ */
+.bai-quick {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 0;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background: #F1EADC;
+}
+.bai-quick button {
+  background: #fff;
+  border: 1px solid var(--line, #E6DEC9);
+  color: var(--navy, #122A4D);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s ease;
+  font-family: inherit;
+}
+.bai-quick button:hover {
+  background: #6C5CE7;
+  color: #fff;
+  border-color: #6C5CE7;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   Footer (الإدخال)
+   ============================================================ */
+.bai-foot {
+  display: flex;
+  gap: 9px;
+  padding: 12px 14px;
+  background: #F1EADC;
+  border-top: 1px solid var(--line, #E6DEC9);
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+.bai-foot textarea {
+  flex: 1;
+  border: 1.5px solid var(--line, #E6DEC9);
+  border-radius: 18px;
+  padding: 11px 15px;
+  font-family: inherit;
+  font-size: 14.5px;
+  resize: none;
+  max-height: 110px;
+  min-height: 44px;
+  background: #fff;
+  line-height: 1.6;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.bai-foot textarea:focus {
+  border-color: #6C5CE7;
+  box-shadow: 0 0 0 4px rgba(108, 92, 231, .12);
+}
+.bai-send {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  flex-shrink: 0;
+  cursor: pointer;
+  background: linear-gradient(135deg, #6C5CE7, #3B2FA8);
+  color: #fff;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease;
+}
+.bai-send:hover { transform: scale(1.08); }
+.bai-send:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================================
+   Mobile
+   ============================================================ */
+@media (max-width: 720px) {
+  .bai-fab { width: 44px; height: 44px; font-size: 19px; }
+  .bai-panel { border-radius: 22px 22px 0 0; }
+}
+@media (max-width: 480px) {
+  .bai-panel {
+    width: calc(100vw - 24px);
+    height: calc(100vh - 130px);
+    inset-inline-start: 12px;
+    bottom: 85px;
+  }
+}
+
+/* ============================================================
+   Print
+   ============================================================ */
+@media print {
+  .bai-fab,
+  .bai-overlay {
+    display: none !important;
+  }
+}
