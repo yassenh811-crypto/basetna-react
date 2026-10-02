@@ -5,14 +5,16 @@
    - إضافة طالب جديد (مع إنشاء حساب Auth)
    - تعديل بيانات طالب
    - حذف طالب
+   - تفعيل اشتراك (SubscriptionForm)
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../services/supabase';
 import AdminFormModal from './AdminFormModal';
+import SubscriptionForm from './SubscriptionForm';
 
 /* ============================================================
-   إعدادات Supabase (من ملف .env)
+   إعدادات Supabase
    ============================================================ */
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -30,6 +32,9 @@ function AdminStudents() {
   const [editing, setEditing] = useState(null);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
+  /* ← حالة الاشتراك */
+  const [subscriptionStudent, setSubscriptionStudent] = useState(null);
+
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -44,7 +49,6 @@ function AdminStudents() {
      ============================================================ */
   async function loadData() {
     setLoading(true);
-
     const [sRes, lRes] = await Promise.all([
       supabase
         .from('profiles')
@@ -53,18 +57,14 @@ function AdminStudents() {
         .order('created_at', { ascending: false }),
       supabase.from('grade_levels').select('*').order('sort_order'),
     ]);
-
     if (sRes.error) console.error('❌ Students:', sRes.error);
     if (lRes.error) console.error('❌ Levels:', lRes.error);
-
     setStudents(sRes.data || []);
     setLevels(lRes.data || []);
     setLoading(false);
   }
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   /* ============================================================
      فتح Modal (إضافة)
@@ -112,7 +112,6 @@ function AdminStudents() {
        ✅ إضافة طالب جديد
        ============================================================ */
     if (!editing) {
-      /* التحقق من البيانات */
       if (!form.full_name.trim()) {
         setMsg({ text: '❌ اكتب اسم الطالب', type: 'error' });
         setSaving(false);
@@ -129,7 +128,7 @@ function AdminStudents() {
         return;
       }
 
-      /* 1. إنشاء حساب في Supabase Auth */
+      /* 1. إنشاء حساب */
       const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
           persistSession: false,
@@ -159,14 +158,14 @@ function AdminStudents() {
         return;
       }
 
-     /* ✅ الجديد */
-const { error: profileError } = await supabase.from('profiles').upsert({
-  id: userId,
-  full_name: form.full_name.trim(),
-  phone: form.phone.trim() || null,
-  grade_level_id: form.grade_level_id || null,
-  role: 'student',
-}, { onConflict: 'id' });
+      /* 2. إنشاء profile */
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: userId,
+        full_name: form.full_name.trim(),
+        phone: form.phone.trim() || null,
+        grade_level_id: form.grade_level_id || null,
+        role: 'student',
+      }, { onConflict: 'id' });
 
       if (profileError) {
         setMsg({ text: '❌ ' + profileError.message, type: 'error' });
@@ -212,19 +211,11 @@ const { error: profileError } = await supabase.from('profiles').upsert({
   async function handleDelete(student) {
     if (!confirm(`متأكد إنك عايز تحذف "${student.full_name}"؟`)) return;
 
-    /* 1. امسح الاشتراكات */
     await supabase.from('subscriptions').delete().eq('student_id', student.id);
-
-    /* 2. امسح الرسائل */
     await supabase.from('messages').delete().eq('sender_id', student.id);
-
-    /* 3. امسح التقييمات */
     await supabase.from('course_ratings').delete().eq('student_id', student.id);
-
-    /* 4. امسح التقدم */
     await supabase.from('lesson_progress').delete().eq('student_id', student.id);
 
-    /* 5. امسح الـ profile */
     const { error } = await supabase.from('profiles').delete().eq('id', student.id);
 
     if (error) {
@@ -286,9 +277,21 @@ const { error: profileError } = await supabase.from('profiles').upsert({
                   <td>{s.phone || '—'}</td>
                   <td>{levelName(s.grade_level_id)}</td>
                   <td>
+                    {/* 💳 زرار الاشتراك */}
+                    <button
+                      className="icon-btn"
+                      onClick={() => setSubscriptionStudent(s)}
+                      style={{ background: 'var(--teal)', color: '#fff' }}
+                    >
+                      💳 الاشتراك
+                    </button>
+
+                    {/* ✏️ تعديل */}
                     <button className="icon-btn" onClick={() => openEditModal(s)}>
                       ✏️
                     </button>
+
+                    {/* 🗑️ حذف */}
                     <button
                       className="icon-btn danger"
                       onClick={() => handleDelete(s)}
@@ -304,7 +307,7 @@ const { error: profileError } = await supabase.from('profiles').upsert({
       </div>
 
       {/* ============================================================
-          Modal
+          Modal (إضافة/تعديل طالب)
           ============================================================ */}
       <AdminFormModal
         open={modalOpen}
@@ -405,7 +408,7 @@ const { error: profileError } = await supabase.from('profiles').upsert({
           </div>
         )}
 
-        {/* رسالة الخطأ */}
+        {/* رسالة */}
         {msg.text && (
           <div
             className={`form-msg ${msg.type}`}
@@ -415,6 +418,19 @@ const { error: profileError } = await supabase.from('profiles').upsert({
           </div>
         )}
       </AdminFormModal>
+
+      {/* ============================================================
+          Modal (تفعيل اشتراك)
+          ============================================================ */}
+      {subscriptionStudent && (
+        <SubscriptionForm
+          student={subscriptionStudent}
+          onClose={() => {
+            setSubscriptionStudent(null);
+            loadData();
+          }}
+        />
+      )}
     </>
   );
 }
