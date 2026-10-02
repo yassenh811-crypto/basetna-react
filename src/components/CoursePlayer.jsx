@@ -1,9 +1,10 @@
 /* ============================================================
-   🎬 CoursePlayer — مشغل الكورس (الفيديو التقديمي + الدروس)
+   🎬 CoursePlayer — مشغل الكورس (الفيديو التقديمي + الدروس + التعليقات)
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
+import Comments from './Comments';
 
 /* ============================================================
    استخراج ID من روابط الفيديو
@@ -234,6 +235,9 @@ function CoursePlayer({ course, onClose }) {
       ) : (
         <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}>
           <p>⚠️ رابط Google Drive غلط</p>
+          <a href={video_url} target="_blank" rel="noopener" style={{ color: 'var(--gold-soft)' }}>
+            افتح الرابط خارج الموقع
+          </a>
         </div>
       );
     }
@@ -336,7 +340,10 @@ function CoursePlayer({ course, onClose }) {
                     <div className="lesson-play">
                       <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                     </div>
-                    <span className="lesson-num" style={lesson.is_intro ? { background: 'var(--gold)', fontSize: 10, width: 'auto', padding: '2px 8px', borderRadius: 999 } : {}}>
+                    <span
+                      className="lesson-num"
+                      style={lesson.is_intro ? { background: 'var(--gold)', fontSize: 10, width: 'auto', padding: '2px 8px', borderRadius: 999 } : {}}
+                    >
                       {lesson.is_intro ? 'مقدمة' : i}
                     </span>
                     {isWatched && !lesson.is_intro && (
@@ -366,6 +373,11 @@ function CoursePlayer({ course, onClose }) {
           </div>
           {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
         </div>
+
+        {/* ✅ التعليقات — للمسجلين دخول بس */}
+        {profile && activeLesson && !activeLesson.is_intro && (
+          <Comments lessonId={activeLesson.id} />
+        )}
       </div>
     </div>
   );
