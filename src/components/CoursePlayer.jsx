@@ -1,5 +1,5 @@
 /* ============================================================
-   🎬 CoursePlayer — مشغل الكورس (يدعم كل أنواع الفيديو)
+   🎬 CoursePlayer — مشغل الكورس (الفيديو التقديمي + الدروس)
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
@@ -23,7 +23,6 @@ function extractYouTubeId(url) {
 
 function getVideoThumbnail(type, url) {
   if (!url) return null;
-
   if (type === 'youtube') {
     const id = extractYouTubeId(url);
     return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
@@ -65,8 +64,25 @@ function CoursePlayer({ course, onClose }) {
       ]);
 
       const lessonsData = lessonsRes.data || [];
-      setLessons(lessonsData);
-      if (lessonsData.length > 0) setActiveLesson(lessonsData[0]);
+
+      /* ✅ ضيف الفيديو التقديمي في الأول */
+      const introLesson = {
+        id: '__intro__',
+        title_ar: '🎬 الفيديو التقديمي',
+        description_ar: course.description_ar || '',
+        video_type: course.content_type || 'youtube',
+        video_url: course.content_url || '',
+        duration_min: 0,
+        sort_order: -1,
+        is_intro: true,
+      };
+
+      const allLessons = course.content_url
+        ? [introLesson, ...lessonsData]
+        : lessonsData;
+
+      setLessons(allLessons);
+      if (allLessons.length > 0) setActiveLesson(allLessons[0]);
 
       const ratings = ratingsRes.data || [];
       const total = ratings.reduce((a, r) => a + r.rating, 0);
@@ -80,7 +96,7 @@ function CoursePlayer({ course, onClose }) {
         setRating(myRatingRes.data.rating);
       }
 
-      /* جلب تقدم الطالب */
+      /* جلب تقدم الطالب (بس للدروس الحقيقية) */
       if (profile && lessonsData.length > 0) {
         const { data: progressData } = await supabase
           .from('lesson_progress')
@@ -97,20 +113,23 @@ function CoursePlayer({ course, onClose }) {
         setProgress({
           watched: w,
           total: lessonsData.length,
-          pct: Math.round((w / lessonsData.length) * 100),
+          pct: lessonsData.length > 0 ? Math.round((w / lessonsData.length) * 100) : 0,
         });
       }
 
       setLoading(false);
     }
     load();
-  }, [course.id, profile]);
+  }, [course.id, profile, course.content_url, course.content_type, course.description_ar]);
 
   /* ============================================================
      تشغيل درس
      ============================================================ */
   async function playLesson(lesson) {
     setActiveLesson(lesson);
+
+    /* الفيديو التقديمي مش بيتحسب في التقدم */
+    if (lesson.is_intro) return;
 
     if (profile) {
       await supabase.from('lesson_progress').upsert(
@@ -122,11 +141,12 @@ function CoursePlayer({ course, onClose }) {
       newSet.add(lesson.id);
       setWatchedIds(newSet);
 
-      const w = lessons.filter((l) => newSet.has(l.id)).length;
+      const realLessons = lessons.filter((l) => !l.is_intro);
+      const w = realLessons.filter((l) => newSet.has(l.id)).length;
       setProgress({
         watched: w,
-        total: lessons.length,
-        pct: Math.round((w / lessons.length) * 100),
+        total: realLessons.length,
+        pct: realLessons.length > 0 ? Math.round((w / realLessons.length) * 100) : 0,
       });
     }
   }
@@ -160,9 +180,7 @@ function CoursePlayer({ course, onClose }) {
 
     const { video_type, video_url } = activeLesson;
 
-    /* ============================================================
-       YouTube
-       ============================================================ */
+    /* YouTube */
     if (video_type === 'youtube') {
       const id = extractYouTubeId(video_url);
       return id ? (
@@ -177,13 +195,14 @@ function CoursePlayer({ course, onClose }) {
       ) : (
         <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}>
           <p>⚠️ رابط YouTube غلط</p>
+          <a href={video_url} target="_blank" rel="noopener" style={{ color: 'var(--gold-soft)' }}>
+            افتح الرابط خارج الموقع
+          </a>
         </div>
       );
     }
 
-    /* ============================================================
-       Vimeo
-       ============================================================ */
+    /* Vimeo */
     if (video_type === 'vimeo') {
       const m = video_url.match(/vimeo\.com\/(\d+)/);
       return m ? (
@@ -201,9 +220,7 @@ function CoursePlayer({ course, onClose }) {
       );
     }
 
-    /* ============================================================
-       Google Drive
-       ============================================================ */
+    /* Google Drive */
     if (video_type === 'drive') {
       const m = video_url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
       return m ? (
@@ -221,22 +238,13 @@ function CoursePlayer({ course, onClose }) {
       );
     }
 
-    /* ============================================================
-       رابط مباشر (MP4 / WebM / أي iframe)
-       ============================================================ */
+    /* رابط مباشر */
     if (video_type === 'link' || video_type === 'file') {
-      /* لو رابط فيديو مباشر (mp4, webm, ...) */
       if (/\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(video_url)) {
         return (
-          <video
-            src={video_url}
-            controls
-            autoPlay
-            style={{ width: '100%', height: '100%' }}
-          ></video>
+          <video src={video_url} controls autoPlay style={{ width: '100%', height: '100%' }}></video>
         );
       }
-      /* لو رابط صفحة (iframe) */
       return (
         <iframe
           src={video_url}
@@ -248,18 +256,11 @@ function CoursePlayer({ course, onClose }) {
       );
     }
 
-    /* ============================================================
-       Fallback
-       ============================================================ */
+    /* Fallback */
     return (
       <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}>
         <p>⚠️ نوع الفيديو مش مدعوم</p>
-        <a
-          href={video_url}
-          target="_blank"
-          rel="noopener"
-          style={{ color: 'var(--gold-soft)' }}
-        >
+        <a href={video_url} target="_blank" rel="noopener" style={{ color: 'var(--gold-soft)' }}>
           افتح الرابط خارج الموقع
         </a>
       </div>
@@ -292,44 +293,19 @@ function CoursePlayer({ course, onClose }) {
           <h2>{course.title_ar}</h2>
           <div className="player-meta">
             <span>⭐ {ratingStats.avg} ({ratingStats.count} تقييم)</span>
-            <span>📹 {lessons.length} فيديو</span>
+            <span>📹 {lessons.filter((l) => !l.is_intro).length} فيديو</span>
           </div>
         </div>
 
         {/* Progress Bar */}
         {progress.total > 0 && (
           <div style={{ padding: '0 20px', marginBottom: 12 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginBottom: 6,
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, fontWeight: 700 }}>
               <span>📊 تقدمك</span>
-              <span>
-                {progress.watched} / {progress.total} ({progress.pct}%)
-              </span>
+              <span>{progress.watched} / {progress.total} ({progress.pct}%)</span>
             </div>
-            <div
-              style={{
-                width: '100%',
-                height: 10,
-                background: 'var(--paper-2)',
-                borderRadius: 999,
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${progress.pct}%`,
-                  height: '100%',
-                  background: 'linear-gradient(90deg, var(--teal), var(--gold))',
-                  transition: 'width 0.3s ease',
-                }}
-              />
+            <div style={{ width: '100%', height: 10, background: 'var(--paper-2)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ width: `${progress.pct}%`, height: '100%', background: 'linear-gradient(90deg, var(--teal), var(--gold))', transition: 'width 0.3s ease' }} />
             </div>
           </div>
         )}
@@ -349,56 +325,29 @@ function CoursePlayer({ course, onClose }) {
                   key={lesson.id}
                   className="lesson-item"
                   onClick={() => playLesson(lesson)}
-                  style={
-                    isActive
-                      ? { borderColor: 'var(--teal)', background: '#F5FAF8' }
-                      : {}
-                  }
+                  style={isActive ? { borderColor: 'var(--teal)', background: '#F5FAF8' } : {}}
                 >
                   <div className="lesson-thumb">
                     {getVideoThumbnail(lesson.video_type, lesson.video_url) ? (
-                      <img
-                        src={getVideoThumbnail(lesson.video_type, lesson.video_url)}
-                        alt={lesson.title_ar}
-                      />
+                      <img src={getVideoThumbnail(lesson.video_type, lesson.video_url)} alt={lesson.title_ar} />
                     ) : (
-                      <div className="lesson-placeholder">🎬</div>
+                      <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>
                     )}
                     <div className="lesson-play">
-                      <svg viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
+                      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                     </div>
-                    <span className="lesson-num">{i + 1}</span>
-                    {isWatched && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: 6,
-                          right: 6,
-                          background: 'var(--teal)',
-                          color: '#fff',
-                          borderRadius: '50%',
-                          width: 22,
-                          height: 22,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
-                        ✓
-                      </span>
+                    <span className="lesson-num" style={lesson.is_intro ? { background: 'var(--gold)', fontSize: 10, width: 'auto', padding: '2px 8px', borderRadius: 999 } : {}}>
+                      {lesson.is_intro ? 'مقدمة' : i}
+                    </span>
+                    {isWatched && !lesson.is_intro && (
+                      <span style={{ position: 'absolute', top: 6, right: 6, background: 'var(--teal)', color: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>✓</span>
                     )}
                   </div>
                   <div className="lesson-info">
                     <h4>{lesson.title_ar}</h4>
                     {lesson.description_ar && <p>{lesson.description_ar}</p>}
                     {lesson.duration_min > 0 && (
-                      <span className="lesson-duration">
-                        ⏱️ {lesson.duration_min} دقيقة
-                      </span>
+                      <span className="lesson-duration">⏱️ {lesson.duration_min} دقيقة</span>
                     )}
                   </div>
                 </div>
@@ -412,13 +361,7 @@ function CoursePlayer({ course, onClose }) {
           <h3>⭐ قيّم الكورس</h3>
           <div className="rating-stars">
             {[1, 2, 3, 4, 5].map((n) => (
-              <span
-                key={n}
-                className={`star ${rating >= n ? 'active' : ''}`}
-                onClick={() => submitRating(n)}
-              >
-                ★
-              </span>
+              <span key={n} className={`star ${rating >= n ? 'active' : ''}`} onClick={() => submitRating(n)}>★</span>
             ))}
           </div>
           {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
