@@ -5,9 +5,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 
-/* ============================================================
-   استخراج ID من روابط الفيديو
-   ============================================================ */
 function extractYouTubeId(url) {
   if (!url) return null;
   const patterns = [
@@ -33,9 +30,6 @@ function getVideoThumbnail(type, url) {
   return null;
 }
 
-/* ============================================================
-   CoursePlayer
-   ============================================================ */
 function CoursePlayer({ course, onClose }) {
   const { profile } = useAuth();
   const [lessons, setLessons] = useState([]);
@@ -45,30 +39,14 @@ function CoursePlayer({ course, onClose }) {
   const [myRating, setMyRating] = useState(null);
   const [ratingStats, setRatingStats] = useState({ avg: 0, count: 0 });
 
-  /* ============================================================
-     جلب الدروس + التقييمات
-     ============================================================ */
   useEffect(() => {
     async function load() {
       setLoading(true);
-
       const [lessonsRes, ratingsRes, myRatingRes] = await Promise.all([
-        supabase
-          .from('lessons')
-          .select('*')
-          .eq('course_id', course.id)
-          .order('sort_order'),
-        supabase
-          .from('course_ratings')
-          .select('rating')
-          .eq('course_id', course.id),
+        supabase.from('lessons').select('*').eq('course_id', course.id).order('sort_order'),
+        supabase.from('course_ratings').select('rating').eq('course_id', course.id),
         profile
-          ? supabase
-              .from('course_ratings')
-              .select('*')
-              .eq('course_id', course.id)
-              .eq('student_id', profile.id)
-              .maybeSingle()
+          ? supabase.from('course_ratings').select('*').eq('course_id', course.id).eq('student_id', profile.id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
 
@@ -93,46 +71,27 @@ function CoursePlayer({ course, onClose }) {
     load();
   }, [course.id, profile]);
 
-  /* ============================================================
-     تشغيل درس
-     ============================================================ */
   function playLesson(lesson) {
     setActiveLesson(lesson);
-
-    /* سجّل التقدم */
     if (profile) {
-      supabase
-        .from('lesson_progress')
-        .upsert(
-          { lesson_id: lesson.id, student_id: profile.id, watched: true },
-          { onConflict: 'lesson_id,student_id' }
-        )
-        .then(() => {});
+      supabase.from('lesson_progress').upsert(
+        { lesson_id: lesson.id, student_id: profile.id, watched: true },
+        { onConflict: 'lesson_id,student_id' }
+      ).then(() => {});
     }
   }
 
-  /* ============================================================
-     إرسال تقييم
-     ============================================================ */
   async function submitRating(value) {
     if (!profile) return;
     setRating(value);
-    const { error } = await supabase
-      .from('course_ratings')
-      .upsert(
-        { course_id: course.id, student_id: profile.id, rating: value },
-        { onConflict: 'course_id,student_id' }
-      );
-    if (error) {
-      console.error(error);
-      return;
-    }
+    const { error } = await supabase.from('course_ratings').upsert(
+      { course_id: course.id, student_id: profile.id, rating: value },
+      { onConflict: 'course_id,student_id' }
+    );
+    if (error) { console.error(error); return; }
     setMyRating(value);
   }
 
-  /* ============================================================
-     عرض الفيديو
-     ============================================================ */
   function renderVideo() {
     if (!activeLesson) {
       return (
@@ -149,8 +108,7 @@ function CoursePlayer({ course, onClose }) {
       const id = extractYouTubeId(video_url);
       return id ? (
         <iframe
-          width="100%"
-          height="100%"
+          width="100%" height="100%"
           src={`https://www.youtube.com/embed/${id}?autoplay=1&rel=0`}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -164,8 +122,7 @@ function CoursePlayer({ course, onClose }) {
       return m ? (
         <iframe
           src={`https://player.vimeo.com/video/${m[1]}?autoplay=1`}
-          width="100%"
-          height="100%"
+          width="100%" height="100%"
           frameBorder="0"
           allow="autoplay; fullscreen"
         ></iframe>
@@ -177,41 +134,25 @@ function CoursePlayer({ course, onClose }) {
       return m ? (
         <iframe
           src={`https://drive.google.com/file/d/${m[1]}/preview`}
-          width="100%"
-          height="100%"
+          width="100%" height="100%"
           frameBorder="0"
           allow="autoplay"
         ></iframe>
       ) : null;
     }
 
-    /* ملف فيديو مباشر */
-    return (
-      <video
-        src={video_url}
-        controls
-        autoPlay
-        style={{ width: '100%', height: '100%' }}
-      ></video>
-    );
+    return <video src={video_url} controls autoPlay style={{ width: '100%', height: '100%' }}></video>;
   }
 
   return (
     <div className="overlay open" onClick={onClose}>
-      <div
-        className="course-player-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="course-player-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close" onClick={onClose}>✕</button>
 
-        {/* ============================================================
-            الفيديو
-            ============================================================ */}
         <div className="video-wrapper">
           <div id="video-player">{renderVideo()}</div>
         </div>
 
-        {/* تفاصيل الفيديو */}
         {activeLesson && (
           <div className="video-details">
             <h3>{activeLesson.title_ar}</h3>
@@ -219,7 +160,6 @@ function CoursePlayer({ course, onClose }) {
           </div>
         )}
 
-        {/* رأس الكورس */}
         <div className="course-player-head">
           <h2>{course.title_ar}</h2>
           <div className="player-meta">
@@ -228,7 +168,6 @@ function CoursePlayer({ course, onClose }) {
           </div>
         </div>
 
-        {/* قائمة الدروس */}
         {loading ? (
           <div className="empty-state">جاري التحميل...</div>
         ) : lessons.length === 0 ? (
@@ -240,25 +179,16 @@ function CoursePlayer({ course, onClose }) {
                 key={lesson.id}
                 className="lesson-item"
                 onClick={() => playLesson(lesson)}
-                style={
-                  activeLesson?.id === lesson.id
-                    ? { borderColor: 'var(--teal)', background: '#F5FAF8' }
-                    : {}
-                }
+                style={activeLesson?.id === lesson.id ? { borderColor: 'var(--teal)', background: '#F5FAF8' } : {}}
               >
                 <div className="lesson-thumb">
                   {getVideoThumbnail(lesson.video_type, lesson.video_url) ? (
-                    <img
-                      src={getVideoThumbnail(lesson.video_type, lesson.video_url)}
-                      alt={lesson.title_ar}
-                    />
+                    <img src={getVideoThumbnail(lesson.video_type, lesson.video_url)} alt={lesson.title_ar} />
                   ) : (
                     <div className="lesson-placeholder">🎬</div>
                   )}
                   <div className="lesson-play">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                   </div>
                   <span className="lesson-num">{i + 1}</span>
                 </div>
@@ -266,9 +196,7 @@ function CoursePlayer({ course, onClose }) {
                   <h4>{lesson.title_ar}</h4>
                   {lesson.description_ar && <p>{lesson.description_ar}</p>}
                   {lesson.duration_min > 0 && (
-                    <span className="lesson-duration">
-                      ⏱️ {lesson.duration_min} دقيقة
-                    </span>
+                    <span className="lesson-duration">⏱️ {lesson.duration_min} دقيقة</span>
                   )}
                 </div>
               </div>
@@ -276,7 +204,6 @@ function CoursePlayer({ course, onClose }) {
           </div>
         )}
 
-        {/* التقييم */}
         <div className="course-rating-section">
           <h3>⭐ قيّم الكورس</h3>
           <div className="rating-stars">
