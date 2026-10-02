@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
 import AdminFormModal from './AdminFormModal';
+import LessonsManager from './LessonsManager';
 
 function AdminCourses() {
   const [courses, setCourses] = useState([]);
@@ -13,6 +14,7 @@ function AdminCourses() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [msg, setMsg] = useState('');
+  const [lessonsCourse, setLessonsCourse] = useState(null); /* ← للفيديوهات */
 
   const [form, setForm] = useState({
     title_ar: '',
@@ -108,6 +110,8 @@ function AdminCourses() {
 
   async function handleDelete(id) {
     if (!confirm('متأكد إنك عايز تحذف الكورس ده؟')) return;
+    /* امسح الدروس الأول */
+    await supabase.from('lessons').delete().eq('course_id', id);
     const { error } = await supabase.from('courses').delete().eq('id', id);
     if (error) { alert('❌ ' + error.message); return; }
     await loadData();
@@ -148,6 +152,13 @@ function AdminCourses() {
                   <td>{levelName(c.grade_level_id)}</td>
                   <td>{c.content_type === 'link' ? '🎬 كورس' : '📄 ملف'}</td>
                   <td>
+                    <button
+                      className="icon-btn"
+                      onClick={() => setLessonsCourse(c)}
+                      style={{ background: 'var(--teal)', color: '#fff' }}
+                    >
+                      🎬 الفيديوهات
+                    </button>
                     <button className="icon-btn" onClick={() => openEditModal(c)}>✏️</button>
                     <button className="icon-btn danger" onClick={() => handleDelete(c.id)}>🗑️</button>
                   </td>
@@ -158,6 +169,9 @@ function AdminCourses() {
         </table>
       </div>
 
+      {/* ============================================================
+          Modal (إضافة/تعديل كورس)
+          ============================================================ */}
       <AdminFormModal
         open={modalOpen}
         title={editing ? 'تعديل كورس' : 'إضافة كورس'}
@@ -215,6 +229,19 @@ function AdminCourses() {
         </div>
         {msg && <div className="form-msg error">{msg}</div>}
       </AdminFormModal>
+
+      {/* ============================================================
+          Modal (إدارة الفيديوهات)
+          ============================================================ */}
+      {lessonsCourse && (
+        <LessonsManager
+          course={lessonsCourse}
+          onClose={() => {
+            setLessonsCourse(null);
+            loadData(); /* ← تحديث الكورسات */
+          }}
+        />
+      )}
     </>
   );
 }
