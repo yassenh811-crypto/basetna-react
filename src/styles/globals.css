@@ -327,3 +327,30 @@ section.block {
 [data-theme="dark"] .global-toast {
   background: #0F2A24;
 }
+/* ============================================================
+   🛡️ حماية الفيديو
+   ============================================================ */
+.video-wrapper {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: auto;
+}
+
+.video-wrapper * {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.video-wrapper video,
+.video-wrapper iframe {
+  pointer-events: auto;
+  user-select: none;
+}
+
+/* منع تحديد النص على الموقع كله (اختياري) */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
