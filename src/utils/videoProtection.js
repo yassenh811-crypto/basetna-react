@@ -1,12 +1,11 @@
 /* ============================================================
-   🛡️ videoProtection — حماية الفيديوهات
+   🛡️ videoProtection — منع Right Click + Copy + Download
    ------------------------------------------------------------
-   - منع Right Click
-   - منع Copy / Cut / Select
-   - منع Ctrl+S / Ctrl+U / F12 / Ctrl+Shift+I
+   - منع كليك يمين على الموقع كله
+   - منع Copy / Cut
+   - منع F12 / Ctrl+U / Ctrl+S / Ctrl+Shift+I
    - منع Drag
-   - منع PrintScreen
-   - إيقاف الفيديو لو التاب خرج من الشاشة
+   - منع تحديد النص
    ============================================================ */
 
 export function enableVideoProtection(containerId) {
@@ -49,6 +48,7 @@ export function enableVideoProtection(containerId) {
   /* 5. منع تحديد النص */
   const onSelectStart = (e) => e.preventDefault();
 
+  /* ربط الأحداث بالعنصر */
   container.addEventListener('contextmenu', onContextMenu);
   container.addEventListener('copy', onCopy);
   container.addEventListener('cut', onCut);
@@ -56,28 +56,9 @@ export function enableVideoProtection(containerId) {
   container.addEventListener('dragstart', onDragStart);
   container.addEventListener('selectstart', onSelectStart);
 
-  /* 6. منع PrintScreen */
-  const onKeyUp = (e) => {
-    if (e.key === 'PrintScreen') {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText('').catch(() => {});
-      }
-    }
-  };
-  document.addEventListener('keyup', onKeyUp);
-
-  /* 7. إيقاف الفيديو لما التاب يخرج من الشاشة */
-  const onVisibilityChange = () => {
-    if (document.hidden) {
-      const videos = document.querySelectorAll('video');
-      videos.forEach((v) => {
-        if (v.pause && !v.paused) {
-          try { v.pause(); } catch (e) {}
-        }
-      });
-    }
-  };
-  document.addEventListener('visibilitychange', onVisibilityChange);
+  /* 6. منع Right Click على الموقع كله */
+  document.addEventListener('contextmenu', onContextMenu);
+  document.addEventListener('keydown', onKeyDown);
 
   /* Cleanup */
   return () => {
@@ -87,24 +68,7 @@ export function enableVideoProtection(containerId) {
     container.removeEventListener('keydown', onKeyDown);
     container.removeEventListener('dragstart', onDragStart);
     container.removeEventListener('selectstart', onSelectStart);
-    document.removeEventListener('keyup', onKeyUp);
-    document.removeEventListener('visibilitychange', onVisibilityChange);
+    document.removeEventListener('contextmenu', onContextMenu);
+    document.removeEventListener('keydown', onKeyDown);
   };
-}
-
-/* ============================================================
-   🎬 HTML5 Video Protection
-   ============================================================ */
-export function protectVideoElement(videoElement) {
-  if (!videoElement) return;
-
-  videoElement.setAttribute(
-    'controlsList',
-    'nodownload noremoteplayback noplaybackrate'
-  );
-  videoElement.setAttribute('disablePictureInPicture', 'true');
-  videoElement.setAttribute('oncontextmenu', 'return false;');
-
-  videoElement.addEventListener('contextmenu', (e) => e.preventDefault());
-  videoElement.addEventListener('dragstart', (e) => e.preventDefault());
 }

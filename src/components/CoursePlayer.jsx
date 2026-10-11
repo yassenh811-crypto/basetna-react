@@ -1,18 +1,17 @@
 /* ============================================================
-   🎬 CoursePlayer — مشغل الكورس (مع الحماية الكاملة)
+   🎬 CoursePlayer — مشغل الكورس
    ------------------------------------------------------------
    - الفيديو التقديمي + الدروس
-   - Progress Bar
+   - Progress Bar + علامة ✓
    - التقييم + التعليقات + الامتحان
-   - 🛡️ منع Download / Right Click / Screen Recording
-   - 💧 Watermark باسم الطالب
+   - 🛡️ منع Right Click / Download
+   - 📁 Google Drive يفتح جوه الموقع
    ============================================================ */
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import Comments from './Comments';
 import LessonQuiz from './LessonQuiz';
-import VideoWatermark from './VideoWatermark';
 import { enableVideoProtection } from '../utils/videoProtection';
 
 /* ============================================================
@@ -60,9 +59,6 @@ function CoursePlayer({ course, onClose }) {
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [progress, setProgress] = useState({ watched: 0, total: 0, pct: 0 });
   const [showQuiz, setShowQuiz] = useState(false);
-  const [windowFocused, setWindowFocused] = useState(true);
-  const [accessChecked, setAccessChecked] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
 
   /* ============================================================
      🛡️ حماية الفيديو
@@ -73,51 +69,9 @@ function CoursePlayer({ course, onClose }) {
   }, []);
 
   /* ============================================================
-     ⚠️ إيقاف الفيديو لما النافذة تفقد التركيز
-     ============================================================ */
-  useEffect(() => {
-    const onBlur = () => setWindowFocused(false);
-    const onFocus = () => setWindowFocused(true);
-    window.addEventListener('blur', onBlur);
-    window.addEventListener('focus', onFocus);
-    return () => {
-      window.removeEventListener('blur', onBlur);
-      window.removeEventListener('focus', onFocus);
-    };
-  }, []);
-
-  /* ============================================================
-     🔐 التحقق من الاشتراك
-     ============================================================ */
-  useEffect(() => {
-    async function checkAccess() {
-      if (!profile) {
-        setHasAccess(false);
-        setAccessChecked(true);
-        return;
-      }
-
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: subs } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('student_id', profile.id)
-        .eq('status', 'active')
-        .gte('end_date', today)
-        .limit(1);
-
-      setHasAccess(subs && subs.length > 0);
-      setAccessChecked(true);
-    }
-    checkAccess();
-  }, [profile]);
-
-  /* ============================================================
      جلب الدروس + التقييمات + التقدم
      ============================================================ */
   useEffect(() => {
-    if (!accessChecked || !hasAccess) return;
-
     async function load() {
       setLoading(true);
 
@@ -131,6 +85,7 @@ function CoursePlayer({ course, onClose }) {
 
       const lessonsData = lessonsRes.data || [];
 
+      /* الفيديو التقديمي */
       const introLesson = {
         id: '__intro__',
         title_ar: '🎬 الفيديو التقديمي',
@@ -161,6 +116,7 @@ function CoursePlayer({ course, onClose }) {
         setRating(myRatingRes.data.rating);
       }
 
+      /* جلب تقدم الطالب */
       if (profile && lessonsData.length > 0) {
         const { data: progressData } = await supabase
           .from('lesson_progress')
@@ -184,7 +140,7 @@ function CoursePlayer({ course, onClose }) {
       setLoading(false);
     }
     load();
-  }, [course.id, profile, course.content_url, course.content_type, course.description_ar, accessChecked, hasAccess]);
+  }, [course.id, profile, course.content_url, course.content_type, course.description_ar]);
 
   /* ============================================================
      تشغيل درس
@@ -230,7 +186,7 @@ function CoursePlayer({ course, onClose }) {
   }
 
   /* ============================================================
-     عرض الفيديو
+     عرض الفيديو — يدعم كل الأنواع
      ============================================================ */
   function renderVideo() {
     if (!activeLesson) {
@@ -244,14 +200,14 @@ function CoursePlayer({ course, onClose }) {
 
     const { video_type, video_url } = activeLesson;
 
-    /* YouTube */
+    /* YouTube — يفتح جوه الموقع */
     if (video_type === 'youtube') {
       const id = extractYouTubeId(video_url);
       return id ? (
         <iframe
           width="100%"
           height="100%"
-          src={`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&showinfo=0&controls=1&disablekb=0`}
+          src={`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3`}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -277,7 +233,7 @@ function CoursePlayer({ course, onClose }) {
       ) : null;
     }
 
-    /* Google Drive */
+    /* Google Drive — يفتح جوه الموقع بـ /preview */
     if (video_type === 'drive') {
       const m = video_url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
       return m ? (
@@ -287,8 +243,13 @@ function CoursePlayer({ course, onClose }) {
           height="100%"
           frameBorder="0"
           allow="autoplay"
+          style={{ border: 'none' }}
         ></iframe>
-      ) : null;
+      ) : (
+        <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}>
+          <p>⚠️ رابط Google Drive غلط</p>
+        </div>
+      );
     }
 
     /* رابط مباشر / ملف */
@@ -325,33 +286,6 @@ function CoursePlayer({ course, onClose }) {
   }
 
   /* ============================================================
-     التحقق من الاشتراك
-     ============================================================ */
-  if (!accessChecked) {
-    return (
-      <div className="overlay open" onClick={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <div className="empty-state">جاري التحقق...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasAccess) {
-    return (
-      <div className="overlay open" onClick={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <button className="close" onClick={onClose}>✕</button>
-          <div className="empty-state" style={{ padding: 30 }}>
-            <div style={{ fontSize: 48, marginBottom: 10 }}>🔒</div>
-            ⚠️ مفيش اشتراك فعّال. تواصل مع الدعم لتجديد الاشتراك.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* ============================================================
      Render
      ============================================================ */
   return (
@@ -359,35 +293,9 @@ function CoursePlayer({ course, onClose }) {
       <div className="course-player-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close" onClick={onClose}>✕</button>
 
-        {/* الفيديو + الحماية */}
+        {/* الفيديو */}
         <div className="video-wrapper" ref={playerRef} style={{ position: 'relative' }}>
           <div id="video-player">{renderVideo()}</div>
-          <VideoWatermark active={true} />
-
-          {/* Overlay لما النافذة تفقد التركيز */}
-          {!windowFocused && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.95)',
-              color: '#fff',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 20,
-              fontSize: 18,
-              fontWeight: 700,
-              textAlign: 'center',
-              padding: 20,
-            }}>
-              🔒 الفيديو متوقف مؤقتاً.
-              <br />
-              <small style={{ marginTop: 8, fontSize: 13, opacity: 0.7 }}>
-                ارجع للنافذة عشان تكمل المشاهدة.
-              </small>
-            </div>
-          )}
         </div>
 
         {/* تفاصيل الفيديو */}
