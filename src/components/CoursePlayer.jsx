@@ -4,8 +4,9 @@
    - الفيديو التقديمي + الدروس
    - Progress Bar + علامة ✓
    - التقييم + التعليقات + الامتحان
-   - 🛡️ منع Right Click على الفيديو
+   - 🛡️ منع Right Click
    - 📁 Google Drive يفتح جوه الموقع
+   - 🚫 Overlay لمنع زراير Drive (Download / توسيع)
    ============================================================ */
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../services/supabase';
@@ -186,7 +187,7 @@ function CoursePlayer({ course, onClose }) {
   }
 
   /* ============================================================
-     عرض الفيديو — يدعم كل الأنواع
+     عرض الفيديو
      ============================================================ */
   function renderVideo() {
     if (!activeLesson) {
@@ -235,19 +236,65 @@ function CoursePlayer({ course, onClose }) {
       ) : null;
     }
 
-    /* Google Drive */
+    /* Google Drive — مع Overlay لمنع الزراير */
     if (video_type === 'drive') {
       const m = video_url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
       return m ? (
-        <iframe
-          src={`https://drive.google.com/file/d/${m[1]}/preview`}
-          width="100%"
-          height="100%"
-          frameBorder="0"
-          allow="autoplay"
-          style={{ border: 'none' }}
-          onContextMenu={(e) => e.preventDefault()}
-        ></iframe>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <iframe
+            src={`https://drive.google.com/file/d/${m[1]}/preview`}
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            allow="autoplay"
+            style={{ border: 'none' }}
+          ></iframe>
+
+          {/* 🚫 Overlay - زاوية علوية يمنى (زراير Drive) */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: 80,
+              height: 60,
+              background: 'transparent',
+              zIndex: 10,
+              cursor: 'not-allowed',
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+
+          {/* 🚫 Overlay - زاوية علوية يسرى (زراير Drive) */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: 80,
+              height: 60,
+              background: 'transparent',
+              zIndex: 10,
+              cursor: 'not-allowed',
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+
+          {/* 🚫 Overlay - أسفل اليمين (زراير Drive) */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: 200,
+              height: 50,
+              background: 'transparent',
+              zIndex: 10,
+              cursor: 'not-allowed',
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        </div>
       ) : (
         <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}>
           <p>⚠️ رابط Google Drive غلط</p>
