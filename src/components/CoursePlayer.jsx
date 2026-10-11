@@ -4,7 +4,7 @@
    - الفيديو التقديمي + الدروس
    - Progress Bar + علامة ✓
    - التقييم + التعليقات + الامتحان
-   - 🛡️ منع Right Click / Download
+   - 🛡️ منع Right Click على الفيديو
    - 📁 Google Drive يفتح جوه الموقع
    ============================================================ */
 import { useEffect, useState, useRef } from 'react';
@@ -200,17 +200,18 @@ function CoursePlayer({ course, onClose }) {
 
     const { video_type, video_url } = activeLesson;
 
-    /* YouTube — يفتح جوه الموقع */
+    /* YouTube */
     if (video_type === 'youtube') {
       const id = extractYouTubeId(video_url);
       return id ? (
         <iframe
           width="100%"
           height="100%"
-          src={`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3`}
+          src={`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&disablekb=1`}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          onContextMenu={(e) => e.preventDefault()}
         ></iframe>
       ) : (
         <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}>
@@ -229,11 +230,12 @@ function CoursePlayer({ course, onClose }) {
           height="100%"
           frameBorder="0"
           allow="autoplay; fullscreen"
+          onContextMenu={(e) => e.preventDefault()}
         ></iframe>
       ) : null;
     }
 
-    /* Google Drive — يفتح جوه الموقع بـ /preview */
+    /* Google Drive */
     if (video_type === 'drive') {
       const m = video_url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
       return m ? (
@@ -244,6 +246,7 @@ function CoursePlayer({ course, onClose }) {
           frameBorder="0"
           allow="autoplay"
           style={{ border: 'none' }}
+          onContextMenu={(e) => e.preventDefault()}
         ></iframe>
       ) : (
         <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}>
@@ -274,6 +277,7 @@ function CoursePlayer({ course, onClose }) {
           height="100%"
           frameBorder="0"
           allow="autoplay; fullscreen"
+          onContextMenu={(e) => e.preventDefault()}
         ></iframe>
       );
     }

@@ -354,3 +354,24 @@ section.block {
   user-select: none;
   -webkit-user-select: none;
 }
+/* ============================================================
+   🛡️ حماية الفيديو
+   ============================================================ */
+.video-wrapper {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  position: relative;
+}
+
+.video-wrapper * {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.video-wrapper iframe,
+.video-wrapper video {
+  pointer-events: auto;
+  user-select: none;
+}
