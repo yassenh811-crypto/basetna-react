@@ -18,24 +18,26 @@ Disallow: /api/
 # منع ملفات النظام والبناء
 Disallow: /assets/
 Disallow: /*.json$
-Disallow: /*.js$
-Disallow: /*.css$
 
 # ==================== Googlebot ====================
 User-agent: Googlebot
 Allow: /
 Disallow: /admin
 Disallow: /student
+Disallow: /login
+Disallow: /register
 
 # ==================== Googlebot-Image ====================
 User-agent: Googlebot-Image
 Allow: /
 
-# ==================== Bing ====================
+# ==================== Bingbot ====================
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
 Disallow: /student
+Disallow: /login
+Disallow: /register
 
 # ==================== الروابط المهمة ====================
 Sitemap: https://basetna-react-m8sa.vercel.app/sitemap.xml
