@@ -1,5 +1,5 @@
 /* ============================================================
-   🎬 CoursePlayer — مشغل الكورس
+   🎬 CoursePlayer — مشغل الكورس بتصميم عمودين
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
@@ -64,9 +64,9 @@ function CoursePlayer({ course, onClose }) {
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [progress, setProgress] = useState({ watched: 0, total: 0, pct: 0 });
   const [showQuiz, setShowQuiz] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  /* قفل بالـ Esc ومنع سكرول الصفحة ورا المودال */
+  /* قفل بالـ Esc ومنع سكرول الصفحة */
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
@@ -226,7 +226,6 @@ function CoursePlayer({ course, onClose }) {
       );
     }
 
-    /* ✅ درايف: مشغل جوجل + طبقات حماية */
     if (video_type === 'drive') {
       const driveId = extractDriveId(video_url);
       if (!driveId) return <VideoError text="رابط Google Drive غلط" />;
@@ -280,136 +279,149 @@ function CoursePlayer({ course, onClose }) {
   return (
     <div className="overlay open" onClick={onClose}>
       <div
-        className={`course-player-modal${isExpanded ? ' expanded' : ''}`}
+        className={`course-player-modal${sidebarOpen ? '' : ' sidebar-closed'}`}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* زر الإغلاق — ثابت فوق وانت بتسكرول */}
+        {/* ===== زر الإغلاق ===== */}
         <button className="close" onClick={onClose} aria-label="إغلاق">✕</button>
 
-        <div className="video-wrapper">
-          <button
-            className="expand-btn"
-            onClick={() => setIsExpanded((v) => !v)}
-            aria-label={isExpanded ? 'تصغير' : 'تكبير'}
-            title={isExpanded ? 'تصغير' : 'تكبير'}
-          >
-            {isExpanded ? '🗗' : '⛶'}
-          </button>
-          <div id="video-player">{renderVideo()}</div>
-        </div>
+        {/* ===== زر إظهار/إخفاء الشريط الجانبي ===== */}
+        <button
+          className="toggle-sidebar-btn"
+          onClick={() => setSidebarOpen((v) => !v)}
+          aria-label={sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
+          title={sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
+        >
+          {sidebarOpen ? '»' : '«'}
+        </button>
 
-        {activeLesson && (
-          <div className="video-details">
-            <h3>{activeLesson.title_ar}</h3>
-            {activeLesson.description_ar && <p>{activeLesson.description_ar}</p>}
-          </div>
-        )}
-
-        <div className="course-player-head">
-          <h2>{course.title_ar}</h2>
-          <div className="player-meta">
-            <span className="meta-chip">
-              ⭐ {ratingStats.avg} <small>({ratingStats.count} تقييم)</small>
-            </span>
-            <span className="meta-chip">📹 {realCount} فيديو</span>
-          </div>
-        </div>
-
-        {progress.total > 0 && (
-          <div className="pp-wrap">
-            <div className="pp-top">
-              <span>📊 تقدمك في الكورس</span>
-              <b>
-                {progress.watched} / {progress.total} · {progress.pct}%
-              </b>
+        <div className="player-layout">
+          {/* ============ العمود الأيسر: الفيديو + التفاصيل ============ */}
+          <div className="player-main">
+            <div className="video-wrapper">
+              <div id="video-player">{renderVideo()}</div>
             </div>
-            <div
-              className="pp-bar"
-              role="progressbar"
-              aria-valuenow={progress.pct}
-              aria-valuemin="0"
-              aria-valuemax="100"
-            >
-              <div className="pp-fill" style={{ width: `${progress.pct}%` }} />
-            </div>
-          </div>
-        )}
 
-        {loading ? (
-          <div className="empty-state">جاري التحميل...</div>
-        ) : lessons.length === 0 ? (
-          <div className="empty-state">لسه مفيش فيديوهات في الكورس ده</div>
-        ) : (
-          <div className="lessons-list">
-            {lessons.map((lesson, i) => {
-              const isWatched = watchedIds.has(lesson.id) && !lesson.is_intro;
-              const isActive = activeLesson?.id === lesson.id;
-              const thumb = getVideoThumbnail(lesson.video_type, lesson.video_url);
-              return (
-                <div
-                  key={lesson.id}
-                  className={`lesson-item${isActive ? ' active' : ''}${isWatched ? ' done' : ''}`}
-                  onClick={() => playLesson(lesson)}
-                >
-                  <div className="lesson-thumb">
-                    {thumb ? (
-                      <img src={thumb} alt="" loading="lazy" />
-                    ) : (
-                      <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>
-                    )}
-                    <div className="lesson-play">
-                      <svg viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
-                    <span className={`lesson-num${lesson.is_intro ? ' intro' : ''}`}>
-                      {lesson.is_intro ? 'مقدمة' : i}
-                    </span>
-                    {isWatched && <span className="lesson-check">✓</span>}
-                  </div>
-                  <div className="lesson-info">
-                    <h4>{lesson.title_ar}</h4>
-                    {lesson.description_ar && <p>{lesson.description_ar}</p>}
-                    {lesson.duration_min > 0 && (
-                      <span className="lesson-duration">⏱️ {lesson.duration_min} دقيقة</span>
-                    )}
-                  </div>
-                  {isActive && <span className="now-playing">شغّال دلوقتي</span>}
+            {activeLesson && (
+              <div className="video-details">
+                <h3>{activeLesson.title_ar}</h3>
+                {activeLesson.description_ar && <p>{activeLesson.description_ar}</p>}
+              </div>
+            )}
+
+            {profile && activeLesson && !activeLesson.is_intro && (
+              <div className="quiz-cta">
+                <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>
+                  🎓 ابدأ امتحان الدرس
+                </button>
+              </div>
+            )}
+
+            {profile && activeLesson && !activeLesson.is_intro && (
+              <Comments lessonId={activeLesson.id} />
+            )}
+          </div>
+
+          {/* ============ العمود الأيمن: الشريط الجانبي ============ */}
+          <aside className="player-sidebar">
+            {/* رأس الكورس */}
+            <div className="course-player-head">
+              <h2>{course.title_ar}</h2>
+              <div className="player-meta">
+                <span className="meta-chip">
+                  ⭐ {ratingStats.avg} <small>({ratingStats.count})</small>
+                </span>
+                <span className="meta-chip">📹 {realCount} فيديو</span>
+              </div>
+            </div>
+
+            {/* شريط التقدم */}
+            {progress.total > 0 && (
+              <div className="pp-wrap">
+                <div className="pp-top">
+                  <span>📊 تقدمك</span>
+                  <b>
+                    {progress.watched} / {progress.total} · {progress.pct}%
+                  </b>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                <div
+                  className="pp-bar"
+                  role="progressbar"
+                  aria-valuenow={progress.pct}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  <div className="pp-fill" style={{ width: `${progress.pct}%` }} />
+                </div>
+              </div>
+            )}
 
-        <div className="course-rating-section">
-          <h3>قيّم الكورس</h3>
-          <div className="rating-stars">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <span
-                key={n}
-                className={`star ${rating >= n ? 'active' : ''}`}
-                onClick={() => submitRating(n)}
-              >
-                ★
-              </span>
-            ))}
-          </div>
-          {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
+            {/* قائمة الدروس */}
+            {loading ? (
+              <div className="empty-state">جاري التحميل...</div>
+            ) : lessons.length === 0 ? (
+              <div className="empty-state">لسه مفيش فيديوهات</div>
+            ) : (
+              <div className="lessons-list">
+                {lessons.map((lesson, i) => {
+                  const isWatched = watchedIds.has(lesson.id) && !lesson.is_intro;
+                  const isActive = activeLesson?.id === lesson.id;
+                  const thumb = getVideoThumbnail(lesson.video_type, lesson.video_url);
+                  return (
+                    <div
+                      key={lesson.id}
+                      className={`lesson-item${isActive ? ' active' : ''}${isWatched ? ' done' : ''}`}
+                      onClick={() => playLesson(lesson)}
+                    >
+                      <div className="lesson-thumb">
+                        {thumb ? (
+                          <img src={thumb} alt="" loading="lazy" />
+                        ) : (
+                          <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>
+                        )}
+                        <div className="lesson-play">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                        <span className={`lesson-num${lesson.is_intro ? ' intro' : ''}`}>
+                          {lesson.is_intro ? 'مقدمة' : i}
+                        </span>
+                        {isWatched && <span className="lesson-check">✓</span>}
+                      </div>
+                      <div className="lesson-info">
+                        <h4>{lesson.title_ar}</h4>
+                        {lesson.description_ar && <p>{lesson.description_ar}</p>}
+                        {lesson.duration_min > 0 && (
+                          <span className="lesson-duration">⏱️ {lesson.duration_min} د</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* التقييم */}
+            <div className="course-rating-section">
+              <h3>قيّم الكورس</h3>
+              <div className="rating-stars">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <span
+                    key={n}
+                    className={`star ${rating >= n ? 'active' : ''}`}
+                    onClick={() => submitRating(n)}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+              {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
+            </div>
+          </aside>
         </div>
-
-        {profile && activeLesson && !activeLesson.is_intro && (
-          <div className="quiz-cta">
-            <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>
-              🎓 ابدأ امتحان الدرس
-            </button>
-          </div>
-        )}
-
-        {profile && activeLesson && !activeLesson.is_intro && (
-          <Comments lessonId={activeLesson.id} />
-        )}
 
         {showQuiz && activeLesson && (
           <LessonQuiz lesson={activeLesson} onClose={() => setShowQuiz(false)} />
