@@ -334,3 +334,51 @@ footer{
   .overlay{align-items:flex-end;padding:0;}
   .welcome-choice{padding:14px 16px;}
 }
+
+/* ============================================================
+   🎬 مشغل الكورس (مع CoursePlayer.jsx الجديد)
+   ============================================================ */
+.course-player-modal{max-width:980px;}
+.video-wrapper{background:#05101F;}
+#video-player{position:relative;width:100%;height:100%;}
+#video-player iframe,#video-player video{width:100%;height:100%;border:0;display:block;background:#000;}
+
+/* بيغطي زرار "فتح في تاب جديد" بتاع درايف */
+.drive-shield{position:absolute;top:0;inset-inline-end:0;width:64px;height:64px;z-index:3;background:transparent;}
+
+.video-error{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;text-align:center;padding:20px;}
+.video-error span{font-size:38px;}
+.video-error p{color:#E8CE94;margin:0;font-weight:700;}
+
+.video-details{background:#fff;padding:18px 24px;border-bottom:1px solid var(--line);}
+.video-details h3{font-size:19px;margin:0 0 6px;}
+.course-player-head{padding:22px 24px 12px;}
+.player-meta{display:flex;gap:10px;flex-wrap:wrap;}
+.meta-chip{background:var(--paper-2);border:1px solid var(--line);padding:5px 12px;border-radius:10px;font-size:13px;font-weight:700;color:var(--navy-deep);}
+.meta-chip small{font-weight:600;color:var(--ink-soft);}
+
+.pp-wrap{padding:6px 24px 14px;}
+.pp-top{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:13.5px;font-weight:700;color:var(--navy-deep);}
+.pp-top b{color:var(--teal-dark);}
+.pp-bar{height:10px;background:var(--paper-2);border-radius:999px;overflow:hidden;border:1px solid var(--line);}
+.pp-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--gold));transition:width .5s var(--ease);}
+
+.lessons-list{padding:10px 20px 18px;max-height:46vh;}
+.lesson-item{position:relative;align-items:center;}
+.lesson-item.active{border-color:var(--teal);background:#EEF8F4;box-shadow:inset 3px 0 0 var(--teal);}
+html[dir="rtl"] .lesson-item.active{box-shadow:inset -3px 0 0 var(--teal);}
+.lesson-item.done .lesson-info h4{color:var(--ink-soft);}
+.lesson-num{border-radius:8px;}
+.lesson-num.intro{width:auto;padding:2px 9px;font-size:10.5px;background:var(--gold);}
+.lesson-check{position:absolute;bottom:6px;inset-inline-end:6px;width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+.now-playing{flex-shrink:0;background:var(--teal);color:#fff;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:8px;}
+
+.quiz-cta{padding:16px 24px;border-top:1px solid var(--line);}
+
+@media (max-width:640px){
+  .course-player-modal{max-height:96vh;}
+  .lesson-thumb{width:96px;}
+  .now-playing{display:none;}
+  .video-details,.course-player-head,.pp-wrap,.quiz-cta{padding-inline:16px;}
+  .drive-shield{width:52px;height:52px;}
+}

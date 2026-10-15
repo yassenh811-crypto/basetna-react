@@ -1,21 +1,33 @@
 /* ============================================================
-   🎬 CoursePlayer — مشغل الكورس (باستخدام CustomPlayer)
+   🎬 CoursePlayer — مشغل الكورس
+   فيديوهات درايف بتتشغل مباشرة من Google Drive (iframe عادي)
    ============================================================ */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import Comments from './Comments';
 import LessonQuiz from './LessonQuiz';
-import CustomPlayer from './CustomPlayer';
 
+/* ---------- Helpers ---------- */
 function extractYouTubeId(url) {
   if (!url) return null;
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/,
     /^([A-Za-z0-9_-]{11})$/,
   ];
-  for (const p of patterns) { const m = url.match(p); if (m) return m[1]; }
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
   return null;
+}
+
+function extractDriveId(url) {
+  if (!url) return null;
+  const m =
+    url.match(/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)/) ||
+    url.match(/drive\.google\.com\/(?:open|uc)\?(?:[^#]*&)?id=([A-Za-z0-9_-]+)/);
+  return m ? m[1] : null;
 }
 
 function getVideoThumbnail(type, url) {
@@ -25,15 +37,24 @@ function getVideoThumbnail(type, url) {
     return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
   }
   if (type === 'drive') {
-    const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
-    return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w800` : null;
+    const id = extractDriveId(url);
+    return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w800` : null;
   }
   return null;
 }
 
+function VideoError({ text }) {
+  return (
+    <div className="video-error">
+      <span>⚠️</span>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+/* ---------- Component ---------- */
 function CoursePlayer({ course, onClose }) {
   const { profile } = useAuth();
-  const playerRef = useRef(null);
 
   const [lessons, setLessons] = useState([]);
   const [activeLesson, setActiveLesson] = useState(null);
@@ -45,37 +66,62 @@ function CoursePlayer({ course, onClose }) {
   const [progress, setProgress] = useState({ watched: 0, total: 0, pct: 0 });
   const [showQuiz, setShowQuiz] = useState(false);
 
+  /* قفل بالـ Esc ومنع سكرول الصفحة ورا المودال */
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
   useEffect(() => {
     async function load() {
       setLoading(true);
       const [lessonsRes, ratingsRes, myRatingRes] = await Promise.all([
         supabase.from('lessons').select('*').eq('course_id', course.id).order('sort_order'),
         supabase.from('course_ratings').select('rating').eq('course_id', course.id),
-        profile ? supabase.from('course_ratings').select('*').eq('course_id', course.id).eq('student_id', profile.id).maybeSingle() : Promise.resolve({ data: null }),
+        profile
+          ? supabase.from('course_ratings').select('*').eq('course_id', course.id).eq('student_id', profile.id).maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
+
       const lessonsData = lessonsRes.data || [];
       const introLesson = {
-        id: '__intro__', title_ar: '🎬 الفيديو التقديمي',
+        id: '__intro__',
+        title_ar: '🎬 الفيديو التقديمي',
         description_ar: course.description_ar || '',
         video_type: course.content_type || 'youtube',
         video_url: course.content_url || '',
-        duration_min: 0, sort_order: -1, is_intro: true,
+        duration_min: 0,
+        sort_order: -1,
+        is_intro: true,
       };
       const allLessons = course.content_url ? [introLesson, ...lessonsData] : lessonsData;
       setLessons(allLessons);
-      if (allLessons.length > 0) setActiveLesson(allLessons[0]);
+      setActiveLesson((cur) => cur || allLessons[0] || null);
 
       const ratings = ratingsRes.data || [];
       const total = ratings.reduce((a, r) => a + r.rating, 0);
       setRatingStats({ avg: ratings.length ? (total / ratings.length).toFixed(1) : 0, count: ratings.length });
-      if (myRatingRes.data) { setMyRating(myRatingRes.data.rating); setRating(myRatingRes.data.rating); }
+      if (myRatingRes.data) {
+        setMyRating(myRatingRes.data.rating);
+        setRating(myRatingRes.data.rating);
+      }
 
       if (profile && lessonsData.length > 0) {
-        const { data: progressData } = await supabase.from('lesson_progress').select('lesson_id, watched').eq('student_id', profile.id).in('lesson_id', lessonsData.map((l) => l.id));
+        const { data: progressData } = await supabase
+          .from('lesson_progress')
+          .select('lesson_id, watched')
+          .eq('student_id', profile.id)
+          .in('lesson_id', lessonsData.map((l) => l.id));
         const watchedSet = new Set((progressData || []).filter((p) => p.watched).map((p) => p.lesson_id));
         setWatchedIds(watchedSet);
         const w = lessonsData.filter((l) => watchedSet.has(l.id)).length;
-        setProgress({ watched: w, total: lessonsData.length, pct: lessonsData.length > 0 ? Math.round((w / lessonsData.length) * 100) : 0 });
+        setProgress({ watched: w, total: lessonsData.length, pct: Math.round((w / lessonsData.length) * 100) });
       }
       setLoading(false);
     }
@@ -85,127 +131,188 @@ function CoursePlayer({ course, onClose }) {
   async function playLesson(lesson) {
     setActiveLesson(lesson);
     setShowQuiz(false);
-    if (lesson.is_intro) return;
-    if (profile) {
-      await supabase.from('lesson_progress').upsert({ lesson_id: lesson.id, student_id: profile.id, watched: true }, { onConflict: 'lesson_id,student_id' });
-      const newSet = new Set(watchedIds); newSet.add(lesson.id);
-      setWatchedIds(newSet);
-      const realLessons = lessons.filter((l) => !l.is_intro);
-      const w = realLessons.filter((l) => newSet.has(l.id)).length;
-      setProgress({ watched: w, total: realLessons.length, pct: realLessons.length > 0 ? Math.round((w / realLessons.length) * 100) : 0 });
-    }
+    if (lesson.is_intro || !profile) return;
+
+    await supabase
+      .from('lesson_progress')
+      .upsert({ lesson_id: lesson.id, student_id: profile.id, watched: true }, { onConflict: 'lesson_id,student_id' });
+
+    const newSet = new Set(watchedIds);
+    newSet.add(lesson.id);
+    setWatchedIds(newSet);
+    const real = lessons.filter((l) => !l.is_intro);
+    const w = real.filter((l) => newSet.has(l.id)).length;
+    setProgress({ watched: w, total: real.length, pct: real.length ? Math.round((w / real.length) * 100) : 0 });
   }
 
   async function submitRating(value) {
     if (!profile) return;
     setRating(value);
-    const { error } = await supabase.from('course_ratings').upsert({ course_id: course.id, student_id: profile.id, rating: value }, { onConflict: 'course_id,student_id' });
-    if (error) { console.error(error); return; }
+    const { error } = await supabase
+      .from('course_ratings')
+      .upsert({ course_id: course.id, student_id: profile.id, rating: value }, { onConflict: 'course_id,student_id' });
+    if (error) {
+      console.error(error);
+      return;
+    }
     setMyRating(value);
   }
 
+  /* ---------- الفيديو ---------- */
   function renderVideo() {
-    if (!activeLesson) return <div id="video-placeholder"><div style={{ fontSize: 64 }}>🎬</div><p>اختار فيديو من القائمة</p></div>;
-    const { video_type, video_url } = activeLesson;
+    if (!activeLesson) {
+      return (
+        <div id="video-placeholder">
+          <div style={{ fontSize: 64 }}>🎬</div>
+          <p>اختار فيديو من القائمة</p>
+        </div>
+      );
+    }
+
+    const { video_type, video_url, id } = activeLesson;
+    const noMenu = (e) => e.preventDefault();
 
     if (video_type === 'youtube') {
-      const id = extractYouTubeId(video_url);
-      return id ? (
-        <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&disablekb=1`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen onContextMenu={(e) => e.preventDefault()}></iframe>
-      ) : <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}><p>⚠️ رابط YouTube غلط</p></div>;
+      const ytId = extractYouTubeId(video_url);
+      if (!ytId) return <VideoError text="رابط YouTube غلط" />;
+      return (
+        <iframe
+          key={id}
+          title={activeLesson.title_ar}
+          src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          onContextMenu={noMenu}
+        />
+      );
     }
 
     if (video_type === 'vimeo') {
       const m = video_url.match(/vimeo\.com\/(\d+)/);
-      return m ? <iframe src={`https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0&portrait=0`} width="100%" height="100%" frameBorder="0" allow="autoplay; fullscreen" onContextMenu={(e) => e.preventDefault()}></iframe> : null;
+      if (!m) return <VideoError text="رابط Vimeo غلط" />;
+      return (
+        <iframe
+          key={id}
+          title={activeLesson.title_ar}
+          src={`https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0&portrait=0`}
+          allow="autoplay; fullscreen"
+          allowFullScreen
+          onContextMenu={noMenu}
+        />
+      );
     }
 
+    /* ✅ درايف: مشغل جوجل نفسه، من غير سكربت */
     if (video_type === 'drive') {
-      const m = video_url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
-      return m ? (
-        <CustomPlayer
-          lessonId={activeLesson.id}
-          user={{
-            id: profile?.id || 'guest',
-            name: profile?.full_name || 'زائر',
-            email: profile?.phone || profile?.email || 'guest@basetna.com',
-          }}
-        />
-      ) : <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}><p>⚠️ رابط Google Drive غلط</p></div>;
+      const driveId = extractDriveId(video_url);
+      if (!driveId) return <VideoError text="رابط Google Drive غلط، اتأكد إنه رابط مشاركة" />;
+      return (
+        <>
+          <iframe
+            key={id}
+            title={activeLesson.title_ar}
+            src={`https://drive.google.com/file/d/${driveId}/preview`}
+            allow="autoplay; fullscreen"
+            allowFullScreen
+          />
+          {/* بيغطي زرار فتح الفيديو في تاب جديد */}
+          <div className="drive-shield" aria-hidden="true" />
+        </>
+      );
     }
 
     if (video_type === 'link' || video_type === 'file') {
       if (/\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(video_url)) {
         return (
-          <CustomPlayer
-            lessonId={activeLesson.id}
-            user={{
-              id: profile?.id || 'guest',
-              name: profile?.full_name || 'زائر',
-              email: profile?.phone || profile?.email || 'guest@basetna.com',
-            }}
+          <video
+            key={id}
+            src={video_url}
+            controls
+            autoPlay
+            playsInline
+            controlsList="nodownload"
+            onContextMenu={noMenu}
           />
         );
       }
-      return <iframe src={video_url} width="100%" height="100%" frameBorder="0" allow="autoplay; fullscreen" onContextMenu={(e) => e.preventDefault()}></iframe>;
+      return (
+        <iframe key={id} title={activeLesson.title_ar} src={video_url} allow="autoplay; fullscreen" allowFullScreen onContextMenu={noMenu} />
+      );
     }
 
-    return <div style={{ padding: 20, color: '#fff', textAlign: 'center' }}><p>⚠️ نوع الفيديو مش مدعوم</p></div>;
+    return <VideoError text="نوع الفيديو مش مدعوم" />;
   }
+
+  const realCount = lessons.filter((l) => !l.is_intro).length;
 
   return (
     <div className="overlay open" onClick={onClose}>
-      <div className="course-player-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="close" onClick={onClose}>✕</button>
-        <div className="video-wrapper" ref={playerRef} style={{ position: 'relative' }}>
+      <div className="course-player-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <button className="close" onClick={onClose} aria-label="إغلاق">✕</button>
+
+        <div className="video-wrapper">
           <div id="video-player">{renderVideo()}</div>
         </div>
 
         {activeLesson && (
           <div className="video-details">
             <h3>{activeLesson.title_ar}</h3>
-            <p>{activeLesson.description_ar || ''}</p>
+            {activeLesson.description_ar && <p>{activeLesson.description_ar}</p>}
           </div>
         )}
 
         <div className="course-player-head">
           <h2>{course.title_ar}</h2>
           <div className="player-meta">
-            <span>⭐ {ratingStats.avg} ({ratingStats.count} تقييم)</span>
-            <span>📹 {lessons.filter((l) => !l.is_intro).length} فيديو</span>
+            <span className="meta-chip">⭐ {ratingStats.avg} <small>({ratingStats.count} تقييم)</small></span>
+            <span className="meta-chip">📹 {realCount} فيديو</span>
           </div>
         </div>
 
         {progress.total > 0 && (
-          <div style={{ padding: '0 20px', marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, fontWeight: 700 }}>
-              <span>📊 تقدمك</span>
-              <span>{progress.watched} / {progress.total} ({progress.pct}%)</span>
+          <div className="pp-wrap">
+            <div className="pp-top">
+              <span>📊 تقدمك في الكورس</span>
+              <b>{progress.watched} / {progress.total} · {progress.pct}%</b>
             </div>
-            <div style={{ width: '100%', height: 10, background: 'var(--paper-2)', borderRadius: 999, overflow: 'hidden' }}>
-              <div style={{ width: `${progress.pct}%`, height: '100%', background: 'linear-gradient(90deg, var(--teal), var(--gold))', transition: 'width 0.3s ease' }} />
+            <div className="pp-bar" role="progressbar" aria-valuenow={progress.pct} aria-valuemin="0" aria-valuemax="100">
+              <div className="pp-fill" style={{ width: `${progress.pct}%` }} />
             </div>
           </div>
         )}
 
-        {loading ? <div className="empty-state">جاري التحميل...</div> : lessons.length === 0 ? <div className="empty-state">لسه مفيش فيديوهات</div> : (
+        {loading ? (
+          <div className="empty-state">جاري التحميل...</div>
+        ) : lessons.length === 0 ? (
+          <div className="empty-state">لسه مفيش فيديوهات في الكورس ده</div>
+        ) : (
           <div className="lessons-list">
             {lessons.map((lesson, i) => {
-              const isWatched = watchedIds.has(lesson.id);
+              const isWatched = watchedIds.has(lesson.id) && !lesson.is_intro;
               const isActive = activeLesson?.id === lesson.id;
+              const thumb = getVideoThumbnail(lesson.video_type, lesson.video_url);
               return (
-                <div key={lesson.id} className="lesson-item" onClick={() => playLesson(lesson)} style={isActive ? { borderColor: 'var(--teal)', background: '#F5FAF8' } : {}}>
+                <div
+                  key={lesson.id}
+                  className={`lesson-item${isActive ? ' active' : ''}${isWatched ? ' done' : ''}`}
+                  onClick={() => playLesson(lesson)}
+                >
                   <div className="lesson-thumb">
-                    {getVideoThumbnail(lesson.video_type, lesson.video_url) ? <img src={getVideoThumbnail(lesson.video_type, lesson.video_url)} alt={lesson.title_ar} /> : <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>}
+                    {thumb ? (
+                      <img src={thumb} alt="" loading="lazy" />
+                    ) : (
+                      <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>
+                    )}
                     <div className="lesson-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></div>
-                    <span className="lesson-num" style={lesson.is_intro ? { background: 'var(--gold)', fontSize: 10, width: 'auto', padding: '2px 8px', borderRadius: 999 } : {}}>{lesson.is_intro ? 'مقدمة' : i}</span>
-                    {isWatched && !lesson.is_intro && <span style={{ position: 'absolute', top: 6, right: 6, background: 'var(--teal)', color: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>✓</span>}
+                    <span className={`lesson-num${lesson.is_intro ? ' intro' : ''}`}>{lesson.is_intro ? 'مقدمة' : i}</span>
+                    {isWatched && <span className="lesson-check">✓</span>}
                   </div>
                   <div className="lesson-info">
                     <h4>{lesson.title_ar}</h4>
                     {lesson.description_ar && <p>{lesson.description_ar}</p>}
                     {lesson.duration_min > 0 && <span className="lesson-duration">⏱️ {lesson.duration_min} دقيقة</span>}
                   </div>
+                  {isActive && <span className="now-playing">شغّال دلوقتي</span>}
                 </div>
               );
             })}
@@ -213,15 +320,17 @@ function CoursePlayer({ course, onClose }) {
         )}
 
         <div className="course-rating-section">
-          <h3>⭐ قيّم الكورس</h3>
+          <h3>قيّم الكورس</h3>
           <div className="rating-stars">
-            {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`star ${rating >= n ? 'active' : ''}`} onClick={() => submitRating(n)}>★</span>)}
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span key={n} className={`star ${rating >= n ? 'active' : ''}`} onClick={() => submitRating(n)}>★</span>
+            ))}
           </div>
           {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
         </div>
 
         {profile && activeLesson && !activeLesson.is_intro && (
-          <div style={{ padding: '16px 20px', borderTop: '1px solid var(--line)', textAlign: 'center' }}>
+          <div className="quiz-cta">
             <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>🎓 ابدأ امتحان الدرس</button>
           </div>
         )}
@@ -234,4 +343,4 @@ function CoursePlayer({ course, onClose }) {
   );
 }
 
-export default CoursePlayer; 
+export default CoursePlayer;
