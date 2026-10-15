@@ -1,5 +1,5 @@
 /* ============================================================
-   🎬 CoursePlayer — مشغل الكورس بتصميم عمودين
+   🎬 CoursePlayer — مشغل الكورس (تصميم عمودين)
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
@@ -64,7 +64,7 @@ function CoursePlayer({ course, onClose }) {
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [progress, setProgress] = useState({ watched: 0, total: 0, pct: 0 });
   const [showQuiz, setShowQuiz] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ افتراضي مقفول على الموبايل
 
   /* قفل بالـ Esc ومنع سكرول الصفحة */
   useEffect(() => {
@@ -284,21 +284,21 @@ function CoursePlayer({ course, onClose }) {
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ===== زر الإغلاق ===== */}
+        {/* زر الإغلاق */}
         <button className="close" onClick={onClose} aria-label="إغلاق">✕</button>
 
-        {/* ===== زر إظهار/إخفاء الشريط الجانبي ===== */}
+        {/* زر إظهار/إخفاء الشريط الجانبي */}
         <button
           className="toggle-sidebar-btn"
           onClick={() => setSidebarOpen((v) => !v)}
           aria-label={sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
           title={sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
         >
-          {sidebarOpen ? '»' : '«'}
+          {sidebarOpen ? '»' : '☰'}
         </button>
 
         <div className="player-layout">
-          {/* ============ العمود الأيسر: الفيديو + التفاصيل ============ */}
+          {/* ====== العمود الأيسر: الفيديو ====== */}
           <div className="player-main">
             <div className="video-wrapper">
               <div id="video-player">{renderVideo()}</div>
@@ -324,9 +324,8 @@ function CoursePlayer({ course, onClose }) {
             )}
           </div>
 
-          {/* ============ العمود الأيمن: الشريط الجانبي ============ */}
+          {/* ====== العمود الأيمن: الشريط الجانبي ====== */}
           <aside className="player-sidebar">
-            {/* رأس الكورس */}
             <div className="course-player-head">
               <h2>{course.title_ar}</h2>
               <div className="player-meta">
@@ -337,7 +336,6 @@ function CoursePlayer({ course, onClose }) {
               </div>
             </div>
 
-            {/* شريط التقدم */}
             {progress.total > 0 && (
               <div className="pp-wrap">
                 <div className="pp-top">
@@ -358,7 +356,6 @@ function CoursePlayer({ course, onClose }) {
               </div>
             )}
 
-            {/* قائمة الدروس */}
             {loading ? (
               <div className="empty-state">جاري التحميل...</div>
             ) : lessons.length === 0 ? (
@@ -404,7 +401,6 @@ function CoursePlayer({ course, onClose }) {
               </div>
             )}
 
-            {/* التقييم */}
             <div className="course-rating-section">
               <h3>قيّم الكورس</h3>
               <div className="rating-stars">
