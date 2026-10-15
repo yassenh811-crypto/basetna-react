@@ -1,8 +1,5 @@
 /* ============================================================
    🎬 CoursePlayer — مشغل الكورس
-   فيديوهات درايف بتتشغل مباشرة من Google Drive (iframe عادي)
-   🔒 منع التكبير والتحميل وفتح في تاب جديد
-   ✅ التكبير متاح فقط من داخل الموقع
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
@@ -229,10 +226,10 @@ function CoursePlayer({ course, onClose }) {
       );
     }
 
-    /* ✅ درايف: مشغل جوجل نفسه، مع طبقات حماية */
+    /* ✅ درايف: مشغل جوجل + طبقات حماية */
     if (video_type === 'drive') {
       const driveId = extractDriveId(video_url);
-      if (!driveId) return <VideoError text="رابط Google Drive غلط، اتأكد إنه رابط مشاركة" />;
+      if (!driveId) return <VideoError text="رابط Google Drive غلط" />;
       return (
         <div className="drive-wrap">
           <iframe
@@ -242,11 +239,8 @@ function CoursePlayer({ course, onClose }) {
             allow="autoplay"
             onContextMenu={noMenu}
           />
-          {/* 🔒 طبقة تغطي زر "فتح في تاب جديد" */}
           <div className="drive-shield" aria-hidden="true" />
-          {/* 🔒 طبقة تغطي زر التكبير Fullscreen */}
           <div className="drive-shield-top-right" aria-hidden="true" />
-          {/* 🔒 طبقة تغطي زر التحميل */}
           <div className="drive-shield-download" aria-hidden="true" />
         </div>
       );
@@ -291,19 +285,18 @@ function CoursePlayer({ course, onClose }) {
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* زر الإغلاق — ثابت فوق وانت بتسكرول */}
         <button className="close" onClick={onClose} aria-label="إغلاق">✕</button>
 
-        {/* ✅ زر تكبير/تصغير من الموقع */}
-        <button
-          className="expand-btn"
-          onClick={() => setIsExpanded((v) => !v)}
-          aria-label={isExpanded ? 'تصغير' : 'تكبير'}
-          title={isExpanded ? 'تصغير' : 'تكبير'}
-        >
-          {isExpanded ? '🗗' : '⛶'}
-        </button>
-
         <div className="video-wrapper">
+          <button
+            className="expand-btn"
+            onClick={() => setIsExpanded((v) => !v)}
+            aria-label={isExpanded ? 'تصغير' : 'تكبير'}
+            title={isExpanded ? 'تصغير' : 'تكبير'}
+          >
+            {isExpanded ? '🗗' : '⛶'}
+          </button>
           <div id="video-player">{renderVideo()}</div>
         </div>
 
