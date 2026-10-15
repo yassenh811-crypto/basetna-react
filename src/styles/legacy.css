@@ -13,6 +13,7 @@
   --teal:#2B7F6C; --teal-dark:#1F5F51;
   --paper:#F7F3EA; --paper-2:#EEE6D5;
   --line:#E3D9C2;
+  --ink-soft:#5A6477;
 
   --r-xs:8px; --r-s:12px; --r-m:18px; --r-l:26px;
   --sh-1:0 1px 2px rgba(9,26,51,.06), 0 4px 12px rgba(9,26,51,.05);
@@ -256,14 +257,6 @@ th,td{padding:15px 18px;}
 .icon-btn:hover{background:var(--line);}
 .empty-state{background:#fff;border:1.5px dashed var(--line);border-radius:var(--r-m);padding:44px 20px;}
 
-/* ---------- بلاير الكورس ---------- */
-.video-wrapper{border-radius:var(--r-l) var(--r-l) 0 0;}
-.course-player-head h2{font-size:24px;}
-.lesson-item{border-radius:var(--r-s) !important;background:#fff;}
-.lesson-item:hover{background:#F4FAF7;border-color:var(--teal);transform:none;box-shadow:var(--sh-1);}
-.lesson-num{border-radius:8px;background:var(--navy-deep);}
-.course-rating-section{background:var(--paper);}
-
 /* ---------- الشات والدعم ---------- */
 .support-head{background:linear-gradient(150deg,var(--navy-mid),var(--navy-deep));padding:22px 26px;}
 .support-head h3{font-family:var(--display);font-size:20px;}
@@ -338,13 +331,94 @@ footer{
 /* ============================================================
    🎬 مشغل الكورس (مع CoursePlayer.jsx الجديد)
    ============================================================ */
-.course-player-modal{max-width:980px;}
-.video-wrapper{background:#05101F;}
+.course-player-modal{
+  max-width:980px;
+  position:relative;
+  transition:max-width .3s var(--ease), width .3s var(--ease), height .3s var(--ease);
+}
+.video-wrapper{background:#05101F;position:relative;}
 #video-player{position:relative;width:100%;height:100%;}
 #video-player iframe,#video-player video{width:100%;height:100%;border:0;display:block;background:#000;}
 
-/* بيغطي زرار "فتح في تاب جديد" بتاع درايف */
-.drive-shield{position:absolute;top:0;inset-inline-end:0;width:64px;height:64px;z-index:3;background:transparent;}
+/* حاوية فيديو الدرايف + طبقات الحماية */
+.drive-wrap{position:relative;width:100%;height:100%;}
+.drive-wrap iframe{width:100%;height:100%;border:0;display:block;background:#000;}
+
+/* ✅ زر التكبير/التصغير من داخل الموقع */
+.expand-btn{
+  position:absolute;
+  top:16px;
+  inset-inline-start:16px;
+  z-index:10;
+  width:42px;height:42px;
+  border:none;border-radius:12px;
+  background:rgba(9,26,51,.85);
+  color:#fff;font-size:20px;font-weight:700;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);
+  transition:background .2s ease, transform .2s var(--ease);
+}
+.expand-btn:hover{background:var(--gold);color:var(--navy-deep);transform:scale(1.05);}
+
+/* ✅ حالة التكبير (يوسّع المودال فقط، مش Fullscreen حقيقي) */
+.course-player-modal.expanded{
+  max-width:100vw;
+  width:100vw;
+  height:100vh;
+  max-height:100vh;
+  border-radius:0 !important;
+  display:flex;
+  flex-direction:column;
+}
+.course-player-modal.expanded .video-wrapper{
+  flex:1 1 auto;
+  min-height:0;
+}
+.course-player-modal.expanded .lessons-list{max-height:32vh;}
+.course-player-modal.expanded .course-player-head,
+.course-player-modal.expanded .video-details,
+.course-player-modal.expanded .pp-wrap,
+.course-player-modal.expanded .quiz-cta,
+.course-player-modal.expanded .course-rating-section{
+  flex-shrink:0;
+}
+
+/* 🔒 طبقة تغطي زر "فتح في تاب جديد" (أعلى يمين) */
+.drive-shield{
+  position:absolute;
+  top:0;
+  inset-inline-end:0;
+  width:80px;height:80px;
+  z-index:5;
+  background:transparent;
+  pointer-events:all;
+  cursor:default;
+}
+
+/* 🔒 طبقة تغطي زر التكبير Fullscreen (أعلى يمين، أعرض) */
+.drive-shield-top-right{
+  position:absolute;
+  top:0;
+  inset-inline-end:0;
+  width:160px;height:64px;
+  z-index:6;
+  background:transparent;
+  pointer-events:all;
+  cursor:default;
+}
+
+/* 🔒 طبقة تغطي زر التحميل (أسفل يمين) */
+.drive-shield-download{
+  position:absolute;
+  bottom:0;
+  inset-inline-end:0;
+  width:120px;height:64px;
+  z-index:6;
+  background:transparent;
+  pointer-events:all;
+  cursor:default;
+}
 
 .video-error{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;text-align:center;padding:20px;}
 .video-error span{font-size:38px;}
@@ -363,7 +437,7 @@ footer{
 .pp-bar{height:10px;background:var(--paper-2);border-radius:999px;overflow:hidden;border:1px solid var(--line);}
 .pp-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--gold));transition:width .5s var(--ease);}
 
-.lessons-list{padding:10px 20px 18px;max-height:46vh;}
+.lessons-list{padding:10px 20px 18px;max-height:46vh;overflow-y:auto;}
 .lesson-item{position:relative;align-items:center;}
 .lesson-item.active{border-color:var(--teal);background:#EEF8F4;box-shadow:inset 3px 0 0 var(--teal);}
 html[dir="rtl"] .lesson-item.active{box-shadow:inset -3px 0 0 var(--teal);}
@@ -375,10 +449,14 @@ html[dir="rtl"] .lesson-item.active{box-shadow:inset -3px 0 0 var(--teal);}
 
 .quiz-cta{padding:16px 24px;border-top:1px solid var(--line);}
 
+/* ---------- موبايل: مشغل الكورس ---------- */
 @media (max-width:640px){
   .course-player-modal{max-height:96vh;}
   .lesson-thumb{width:96px;}
   .now-playing{display:none;}
   .video-details,.course-player-head,.pp-wrap,.quiz-cta{padding-inline:16px;}
-  .drive-shield{width:52px;height:52px;}
+  .drive-shield{width:60px;height:60px;}
+  .drive-shield-top-right{width:120px;height:52px;}
+  .drive-shield-download{width:100px;height:52px;}
+  .expand-btn{width:38px;height:38px;font-size:18px;top:12px;inset-inline-start:12px;}
 }

@@ -1,6 +1,8 @@
 /* ============================================================
    🎬 CoursePlayer — مشغل الكورس
    فيديوهات درايف بتتشغل مباشرة من Google Drive (iframe عادي)
+   🔒 منع التكبير والتحميل وفتح في تاب جديد
+   ✅ التكبير متاح فقط من داخل الموقع
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
@@ -65,6 +67,7 @@ function CoursePlayer({ course, onClose }) {
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [progress, setProgress] = useState({ watched: 0, total: 0, pct: 0 });
   const [showQuiz, setShowQuiz] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   /* قفل بالـ Esc ومنع سكرول الصفحة ورا المودال */
   useEffect(() => {
@@ -85,7 +88,12 @@ function CoursePlayer({ course, onClose }) {
         supabase.from('lessons').select('*').eq('course_id', course.id).order('sort_order'),
         supabase.from('course_ratings').select('rating').eq('course_id', course.id),
         profile
-          ? supabase.from('course_ratings').select('*').eq('course_id', course.id).eq('student_id', profile.id).maybeSingle()
+          ? supabase
+              .from('course_ratings')
+              .select('*')
+              .eq('course_id', course.id)
+              .eq('student_id', profile.id)
+              .maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
 
@@ -106,7 +114,10 @@ function CoursePlayer({ course, onClose }) {
 
       const ratings = ratingsRes.data || [];
       const total = ratings.reduce((a, r) => a + r.rating, 0);
-      setRatingStats({ avg: ratings.length ? (total / ratings.length).toFixed(1) : 0, count: ratings.length });
+      setRatingStats({
+        avg: ratings.length ? (total / ratings.length).toFixed(1) : 0,
+        count: ratings.length,
+      });
       if (myRatingRes.data) {
         setMyRating(myRatingRes.data.rating);
         setRating(myRatingRes.data.rating);
@@ -118,10 +129,16 @@ function CoursePlayer({ course, onClose }) {
           .select('lesson_id, watched')
           .eq('student_id', profile.id)
           .in('lesson_id', lessonsData.map((l) => l.id));
-        const watchedSet = new Set((progressData || []).filter((p) => p.watched).map((p) => p.lesson_id));
+        const watchedSet = new Set(
+          (progressData || []).filter((p) => p.watched).map((p) => p.lesson_id)
+        );
         setWatchedIds(watchedSet);
         const w = lessonsData.filter((l) => watchedSet.has(l.id)).length;
-        setProgress({ watched: w, total: lessonsData.length, pct: Math.round((w / lessonsData.length) * 100) });
+        setProgress({
+          watched: w,
+          total: lessonsData.length,
+          pct: Math.round((w / lessonsData.length) * 100),
+        });
       }
       setLoading(false);
     }
@@ -135,14 +152,21 @@ function CoursePlayer({ course, onClose }) {
 
     await supabase
       .from('lesson_progress')
-      .upsert({ lesson_id: lesson.id, student_id: profile.id, watched: true }, { onConflict: 'lesson_id,student_id' });
+      .upsert(
+        { lesson_id: lesson.id, student_id: profile.id, watched: true },
+        { onConflict: 'lesson_id,student_id' }
+      );
 
     const newSet = new Set(watchedIds);
     newSet.add(lesson.id);
     setWatchedIds(newSet);
     const real = lessons.filter((l) => !l.is_intro);
     const w = real.filter((l) => newSet.has(l.id)).length;
-    setProgress({ watched: w, total: real.length, pct: real.length ? Math.round((w / real.length) * 100) : 0 });
+    setProgress({
+      watched: w,
+      total: real.length,
+      pct: real.length ? Math.round((w / real.length) * 100) : 0,
+    });
   }
 
   async function submitRating(value) {
@@ -150,7 +174,10 @@ function CoursePlayer({ course, onClose }) {
     setRating(value);
     const { error } = await supabase
       .from('course_ratings')
-      .upsert({ course_id: course.id, student_id: profile.id, rating: value }, { onConflict: 'course_id,student_id' });
+      .upsert(
+        { course_id: course.id, student_id: profile.id, rating: value },
+        { onConflict: 'course_id,student_id' }
+      );
     if (error) {
       console.error(error);
       return;
@@ -202,22 +229,26 @@ function CoursePlayer({ course, onClose }) {
       );
     }
 
-    /* ✅ درايف: مشغل جوجل نفسه، من غير سكربت */
+    /* ✅ درايف: مشغل جوجل نفسه، مع طبقات حماية */
     if (video_type === 'drive') {
       const driveId = extractDriveId(video_url);
       if (!driveId) return <VideoError text="رابط Google Drive غلط، اتأكد إنه رابط مشاركة" />;
       return (
-        <>
+        <div className="drive-wrap">
           <iframe
             key={id}
             title={activeLesson.title_ar}
             src={`https://drive.google.com/file/d/${driveId}/preview`}
-            allow="autoplay; fullscreen"
-            allowFullScreen
+            allow="autoplay"
+            onContextMenu={noMenu}
           />
-          {/* بيغطي زرار فتح الفيديو في تاب جديد */}
+          {/* 🔒 طبقة تغطي زر "فتح في تاب جديد" */}
           <div className="drive-shield" aria-hidden="true" />
-        </>
+          {/* 🔒 طبقة تغطي زر التكبير Fullscreen */}
+          <div className="drive-shield-top-right" aria-hidden="true" />
+          {/* 🔒 طبقة تغطي زر التحميل */}
+          <div className="drive-shield-download" aria-hidden="true" />
+        </div>
       );
     }
 
@@ -230,13 +261,20 @@ function CoursePlayer({ course, onClose }) {
             controls
             autoPlay
             playsInline
-            controlsList="nodownload"
+            controlsList="nodownload noplaybackrate"
+            disablePictureInPicture
             onContextMenu={noMenu}
           />
         );
       }
       return (
-        <iframe key={id} title={activeLesson.title_ar} src={video_url} allow="autoplay; fullscreen" allowFullScreen onContextMenu={noMenu} />
+        <iframe
+          key={id}
+          title={activeLesson.title_ar}
+          src={video_url}
+          allow="autoplay"
+          onContextMenu={noMenu}
+        />
       );
     }
 
@@ -247,8 +285,23 @@ function CoursePlayer({ course, onClose }) {
 
   return (
     <div className="overlay open" onClick={onClose}>
-      <div className="course-player-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`course-player-modal${isExpanded ? ' expanded' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button className="close" onClick={onClose} aria-label="إغلاق">✕</button>
+
+        {/* ✅ زر تكبير/تصغير من الموقع */}
+        <button
+          className="expand-btn"
+          onClick={() => setIsExpanded((v) => !v)}
+          aria-label={isExpanded ? 'تصغير' : 'تكبير'}
+          title={isExpanded ? 'تصغير' : 'تكبير'}
+        >
+          {isExpanded ? '🗗' : '⛶'}
+        </button>
 
         <div className="video-wrapper">
           <div id="video-player">{renderVideo()}</div>
@@ -264,7 +317,9 @@ function CoursePlayer({ course, onClose }) {
         <div className="course-player-head">
           <h2>{course.title_ar}</h2>
           <div className="player-meta">
-            <span className="meta-chip">⭐ {ratingStats.avg} <small>({ratingStats.count} تقييم)</small></span>
+            <span className="meta-chip">
+              ⭐ {ratingStats.avg} <small>({ratingStats.count} تقييم)</small>
+            </span>
             <span className="meta-chip">📹 {realCount} فيديو</span>
           </div>
         </div>
@@ -273,9 +328,17 @@ function CoursePlayer({ course, onClose }) {
           <div className="pp-wrap">
             <div className="pp-top">
               <span>📊 تقدمك في الكورس</span>
-              <b>{progress.watched} / {progress.total} · {progress.pct}%</b>
+              <b>
+                {progress.watched} / {progress.total} · {progress.pct}%
+              </b>
             </div>
-            <div className="pp-bar" role="progressbar" aria-valuenow={progress.pct} aria-valuemin="0" aria-valuemax="100">
+            <div
+              className="pp-bar"
+              role="progressbar"
+              aria-valuenow={progress.pct}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
               <div className="pp-fill" style={{ width: `${progress.pct}%` }} />
             </div>
           </div>
@@ -303,14 +366,22 @@ function CoursePlayer({ course, onClose }) {
                     ) : (
                       <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>
                     )}
-                    <div className="lesson-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></div>
-                    <span className={`lesson-num${lesson.is_intro ? ' intro' : ''}`}>{lesson.is_intro ? 'مقدمة' : i}</span>
+                    <div className="lesson-play">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                    <span className={`lesson-num${lesson.is_intro ? ' intro' : ''}`}>
+                      {lesson.is_intro ? 'مقدمة' : i}
+                    </span>
                     {isWatched && <span className="lesson-check">✓</span>}
                   </div>
                   <div className="lesson-info">
                     <h4>{lesson.title_ar}</h4>
                     {lesson.description_ar && <p>{lesson.description_ar}</p>}
-                    {lesson.duration_min > 0 && <span className="lesson-duration">⏱️ {lesson.duration_min} دقيقة</span>}
+                    {lesson.duration_min > 0 && (
+                      <span className="lesson-duration">⏱️ {lesson.duration_min} دقيقة</span>
+                    )}
                   </div>
                   {isActive && <span className="now-playing">شغّال دلوقتي</span>}
                 </div>
@@ -323,7 +394,13 @@ function CoursePlayer({ course, onClose }) {
           <h3>قيّم الكورس</h3>
           <div className="rating-stars">
             {[1, 2, 3, 4, 5].map((n) => (
-              <span key={n} className={`star ${rating >= n ? 'active' : ''}`} onClick={() => submitRating(n)}>★</span>
+              <span
+                key={n}
+                className={`star ${rating >= n ? 'active' : ''}`}
+                onClick={() => submitRating(n)}
+              >
+                ★
+              </span>
             ))}
           </div>
           {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
@@ -331,13 +408,19 @@ function CoursePlayer({ course, onClose }) {
 
         {profile && activeLesson && !activeLesson.is_intro && (
           <div className="quiz-cta">
-            <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>🎓 ابدأ امتحان الدرس</button>
+            <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>
+              🎓 ابدأ امتحان الدرس
+            </button>
           </div>
         )}
 
-        {profile && activeLesson && !activeLesson.is_intro && <Comments lessonId={activeLesson.id} />}
+        {profile && activeLesson && !activeLesson.is_intro && (
+          <Comments lessonId={activeLesson.id} />
+        )}
 
-        {showQuiz && activeLesson && <LessonQuiz lesson={activeLesson} onClose={() => setShowQuiz(false)} />}
+        {showQuiz && activeLesson && (
+          <LessonQuiz lesson={activeLesson} onClose={() => setShowQuiz(false)} />
+        )}
       </div>
     </div>
   );
