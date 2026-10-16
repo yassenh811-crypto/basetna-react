@@ -2,71 +2,47 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    
-    <!-- ✅ كود التحقق من Google للدومين الجديد -->
-    <meta name="google-site-verification" content="9HXPKtvaRKacraA3F42muwZD24hoU5b5wwUVo8X9RtI" />
-    
-    <!-- ✅ كود التحقق من Google للدومين القديم -->
-    <meta name="google-site-verification" content="pZVg85RylWFqK6q_PVLs9VRBLwN1oaPur28WjaQF_mY" />
-    
-    <!-- ✅ الـ Favicon (اللوجو) -->
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="shortcut icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- ✅ وصف الموقع (Description) بالعربي -->
-    <meta name="description" content="منصة تعليمية لتعلم اللغة الإنجليزية ببساطة مع مس. شيرهان. كورسات، فيديوهات، وتمارين تفاعلية لجميع المراحل الدراسية." />
-    
-    <!-- ✅ كلمات مفتاحية بالعربي والإنجليزي -->
-    <meta name="keywords" content="تعلم الإنجليزية, كورسات إنجليزي, شرح قواعد, تمارين إنجليزي, بسّطنا الإنجليزي, Basetna English, Learn English, English Courses, Grammar" />
-    
-    <!-- ✅ معلومات إضافية للـ SEO -->
-    <meta name="author" content="Basetna English" />
-    <meta name="robots" content="index, follow" />
-    <meta name="language" content="Arabic" />
-    
-    <!-- ✅ Open Graph (للمشاركة على فيسبوك وواتساب) -->
-    <meta property="og:title" content="بسّطنا الإنجليزي - تعلم الإنجليزية مع مس. شيرهان" />
-    <meta property="og:description" content="منصة تعليمية لتعلم اللغة الإنجليزية ببساطة مع مس. شيرهان. كورسات، فيديوهات، وتمارين تفاعلية." />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>بسّطنا الإنجليزي — مس. شيرهان علي</title>
+    <meta name="description" content="منصة بسّطنا الإنجليزي: كورسات إنجليزي مرتبة حسب مرحلتك الدراسية، فيديوهات لكل كورس، ومتابعة مباشرة مع مس. شيرهان علي." />
+    <meta name="theme-color" content="#0B1D38" />
+
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://basetna-english.online" />
-    <meta property="og:image" content="https://basetna-english.online/favicon.png" />
+    <meta property="og:title" content="بسّطنا الإنجليزي" />
+    <meta property="og:description" content="الإنجليزي يبقى سهل وبسيط مع مس. شيرهان." />
     <meta property="og:locale" content="ar_EG" />
-    
-    <!-- ✅ Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="بسّطنا الإنجليزي" />
-    <meta name="twitter:description" content="منصة تعليمية لتعلم اللغة الإنجليزية ببساطة." />
-    <meta name="twitter:image" content="https://basetna-english.online/favicon.png" />
-    
-    <!-- ✅ خط Cairo -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- ✅ عنوان الصفحة -->
-    <title>بسّطنا الإنجليزي - تعلم الإنجليزية مع مس. شيرهان</title>
-    
-    <!-- ✅ بيانات منظمة (Structured Data) لتحسين الفهرسة -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "EducationalOrganization",
-      "name": "بسّطنا الإنجليزي",
-      "alternateName": "Basetna English",
-      "url": "https://basetna-english.online",
-      "logo": "https://basetna-english.online/favicon.png",
-      "description": "منصة تعليمية لتعلم اللغة الإنجليزية ببساطة مع مس. شيرهان. كورسات، فيديوهات، وتمارين تفاعلية.",
-      "inLanguage": "ar",
-      "founder": {
-        "@type": "Person",
-        "name": "مس. شيرهان علي"
-      }
-    }
+
+    <!-- أيقونة الموقع (SVG جاهزة، مفيش ملف خارجي) -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23C79A3D'/%3E%3Ctext x='32' y='43' font-family='Arial' font-weight='800' font-size='28' text-anchor='middle' fill='%230B1D38'%3EEN%3C/text%3E%3C/svg%3E" />
+
+    <!-- الخطوط -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=El+Messiri:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- يمنع وميض الأبيض: بيطبّق الثيم واللغة قبل ما الصفحة تترسم -->
+    <script>
+      try {
+        var t = localStorage.getItem('basetna_theme') ||
+          (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        var l = localStorage.getItem('basetna_lang') || 'ar';
+        var r = document.documentElement;
+        r.setAttribute('data-theme', t);
+        r.lang = l;
+        r.dir = l === 'ar' ? 'rtl' : 'ltr';
+      } catch (e) {}
     </script>
+    <style>
+      html { background: #FAF6EE; }
+      html[data-theme='dark'] { background: #0A1424; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>لازم تفعّل JavaScript عشان الموقع يشتغل. / Please enable JavaScript to use this site.</noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
