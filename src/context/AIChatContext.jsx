@@ -93,6 +93,8 @@ export function AIChatProvider({ children }) {
         });
         try { data = await res.json(); } catch (e) {}
       } catch (e) {
+        /* السبب الحقيقي يظهر في Console (F12) عشان نعرف نشخّص */
+        console.error('[AI] فشل الاتصال بـ', `${API_URL}/api/ai`, '→', e);
         if (e.name === 'AbortError') throw new Error('الرد اتأخر أوي، جرّب تاني.');
         throw new Error('مش قادر أوصل للسيرفر.');
       } finally {
