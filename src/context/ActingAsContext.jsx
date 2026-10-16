@@ -1,7 +1,6 @@
 /* ============================================================
    🎭 ActingAsContext — اختيار صفة الرد (دعم فني / مدير عام)
    بيشتغل لحساب واحد بس: yassenq14232@gmail.com
-   باقي الحسابات مش بيتأثروا ولا بيشوفوا حاجة.
    ============================================================ */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
@@ -41,7 +40,6 @@ export function ActingAsProvider({ children }) {
   });
   const [showPicker, setShowPicker] = useState(false);
 
-  /* الشاشة بتظهر أول ما تفتح الموقع في كل جلسة */
   useEffect(() => {
     if (!isOwnerAccount) {
       setShowPicker(false);

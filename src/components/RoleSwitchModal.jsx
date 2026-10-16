@@ -1,93 +1,51 @@
 /* ============================================================
-   🎭 ActingAsContext — اختيار صفة الرد (دعم فني / مدير عام)
-   بيشتغل لحساب واحد بس: yassenq14232@gmail.com
-   باقي الحسابات مش بيتأثروا ولا بيشوفوا حاجة.
+   🎭 RoleSwitchModal — شاشة اختيار صفة الرد (لحساب واحد بس)
    ============================================================ */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useEffect } from 'react';
+import { ACTING_OPTIONS, useActingAs } from '../context/ActingAsContext';
 
-export const OWNER_EMAIL = 'yassenq14232@gmail.com';
+function RoleSwitchModal() {
+  const { isOwnerAccount, showPicker, actingAs, setActingAs, closePicker } = useActingAs();
 
-export const ACTING_OPTIONS = {
-  support: { role: 'support', label: 'دعم فني', icon: '🛠️', desc: 'ترد على الناس بصفة الدعم الفني' },
-  superadmin: { role: 'superadmin', label: 'مدير عام', icon: '👑', desc: 'ترد بصفة المدير العام' },
-};
-
-const KEY = 'acting_as';
-const SEEN = 'acting_as_seen';
-
-const ActingAsContext = createContext({
-  isOwnerAccount: false,
-  actingAs: null,
-  actingInfo: null,
-  setActingAs: () => {},
-  showPicker: false,
-  openPicker: () => {},
-  closePicker: () => {},
-});
-
-export function ActingAsProvider({ children }) {
-  const { user, profile } = useAuth();
-  const email = (user?.email || profile?.email || '').toLowerCase();
-  const isOwnerAccount = email === OWNER_EMAIL;
-
-  const [choice, setChoice] = useState(() => {
-    try {
-      const saved = localStorage.getItem(KEY);
-      return ACTING_OPTIONS[saved] ? saved : 'superadmin';
-    } catch {
-      return 'superadmin';
-    }
-  });
-  const [showPicker, setShowPicker] = useState(false);
-
-  /* الشاشة بتظهر أول ما تفتح الموقع في كل جلسة */
   useEffect(() => {
-    if (!isOwnerAccount) {
-      setShowPicker(false);
-      return;
-    }
-    try {
-      if (!sessionStorage.getItem(SEEN)) setShowPicker(true);
-    } catch {
-      setShowPicker(true);
-    }
-  }, [isOwnerAccount]);
+    if (!showPicker) return;
+    const onKey = (e) => e.key === 'Escape' && closePicker();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showPicker, closePicker]);
 
-  const markSeen = () => {
-    try { sessionStorage.setItem(SEEN, '1'); } catch {}
-  };
+  if (!isOwnerAccount || !showPicker) return null;
 
-  const setActingAs = useCallback((v) => {
-    if (!ACTING_OPTIONS[v]) return;
-    setChoice(v);
-    try { localStorage.setItem(KEY, v); } catch {}
-    markSeen();
-    setShowPicker(false);
-  }, []);
+  return (
+    <div className="overlay open" onClick={closePicker}>
+      <div className="modal role-picker-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <button className="close" type="button" onClick={closePicker} aria-label="إغلاق">✕</button>
+        <h3>🎭 هترد بصفة إيه؟</h3>
+        <p className="sub">اختار الصفة اللي هتظهر بيها رسايلك في الشات. تقدر تغيّرها في أي وقت.</p>
 
-  const openPicker = useCallback(() => setShowPicker(true), []);
-  const closePicker = useCallback(() => {
-    markSeen();
-    setShowPicker(false);
-  }, []);
-
-  const value = useMemo(
-    () => ({
-      isOwnerAccount,
-      actingAs: isOwnerAccount ? choice : null,
-      actingInfo: isOwnerAccount ? ACTING_OPTIONS[choice] : null,
-      setActingAs,
-      showPicker: isOwnerAccount && showPicker,
-      openPicker,
-      closePicker,
-    }),
-    [isOwnerAccount, choice, showPicker, setActingAs, openPicker, closePicker]
+        {Object.values(ACTING_OPTIONS).map((opt) => (
+          <button
+            key={opt.role}
+            type="button"
+            className={`role-choice${actingAs === opt.role ? ' current' : ''}`}
+            onClick={() => setActingAs(opt.role)}
+          >
+            <span
+              className="role-choice-icon"
+              style={{ background: opt.role === 'support' ? 'linear-gradient(135deg,var(--purple),var(--purple-dark))' : 'linear-gradient(135deg,#B8860B,#8B6914)' }}
+            >
+              {opt.icon}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="role-choice-title">{opt.label}</span>
+              <span className="role-choice-desc">{opt.desc}</span>
+            </span>
+            {actingAs === opt.role && <span className="role-current-tag">الحالية</span>}
+          </button>
+        ))}
+      </div>
+    </div>
   );
-
-  return <ActingAsContext.Provider value={value}>{children}</ActingAsContext.Provider>;
 }
 
-export function useActingAs() {
-  return useContext(ActingAsContext);
-}
+export default RoleSwitchModal;
