@@ -5,17 +5,17 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
 
 const COUNTRIES = [
-  { dial: '20', ar: 'مصر', en: 'Egypt' },
-  { dial: '966', ar: 'السعودية', en: 'Saudi Arabia' },
-  { dial: '971', ar: 'الإمارات', en: 'UAE' },
-  { dial: '965', ar: 'الكويت', en: 'Kuwait' },
-  { dial: '974', ar: 'قطر', en: 'Qatar' },
-  { dial: '973', ar: 'البحرين', en: 'Bahrain' },
-  { dial: '968', ar: 'عُمان', en: 'Oman' },
-  { dial: '962', ar: 'الأردن', en: 'Jordan' },
-  { dial: '961', ar: 'لبنان', en: 'Lebanon' },
-  { dial: '963', ar: 'سوريا', en: 'Syria' },
-  { dial: '964', ar: 'العراق', en: 'Iraq' },
+  { dial: '20', ar: 'مصر' },
+  { dial: '966', ar: 'السعودية' },
+  { dial: '971', ar: 'الإمارات' },
+  { dial: '965', ar: 'الكويت' },
+  { dial: '974', ar: 'قطر' },
+  { dial: '973', ar: 'البحرين' },
+  { dial: '968', ar: 'عُمان' },
+  { dial: '962', ar: 'الأردن' },
+  { dial: '961', ar: 'لبنان' },
+  { dial: '963', ar: 'سوريا' },
+  { dial: '964', ar: 'العراق' },
 ];
 
 function AdminSettings() {
@@ -29,11 +29,7 @@ function AdminSettings() {
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+      const { data, error } = await supabase.from('settings').select('*').eq('id', 1).maybeSingle();
 
       if (error) {
         console.error('❌', error);
@@ -54,7 +50,6 @@ function AdminSettings() {
           setWhatsapp(full);
         }
       }
-
       setLoading(false);
     }
     load();
@@ -77,11 +72,7 @@ function AdminSettings() {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from('settings')
-      .update(payload)
-      .eq('id', 1);
-
+    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
     setSaving(false);
 
     if (error) {
@@ -94,8 +85,12 @@ function AdminSettings() {
   }
 
   if (loading) {
-    return <div className="empty-state">جاري التحميل...</div>;
+    return (
+      <div className="skeleton-list" style={{ maxWidth: 560 }}><span /><span /><span /></div>
+    );
   }
+
+  const phone = fullPhone();
 
   return (
     <>
@@ -103,89 +98,51 @@ function AdminSettings() {
         <h1>⚙️ الإعدادات</h1>
       </div>
 
-      <div className="card" style={{ maxWidth: 560 }}>
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label>اسم الأونر</label>
-            <input
-              type="text"
-              value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
-              placeholder="ms. sherehan ali"
-            />
-          </div>
-
-          <div className="field">
-            <label>رقم واتساب</label>
-            <div className="phone-row">
-              <select
-                value={countryDial}
-                onChange={(e) => setCountryDial(e.target.value)}
-              >
-                {COUNTRIES.map((c) => (
-                  <option key={c.dial} value={c.dial}>
-                    +{c.dial} — {c.ar}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="tel"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="10XXXXXXXX"
-                inputMode="numeric"
-              />
+      <div className="settings-grid">
+        <div className="card settings-card">
+          <h3>بيانات الموقع</h3>
+          <form onSubmit={handleSubmit}>
+            <div className="field">
+              <label>اسم الأونر</label>
+              <input type="text" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="ms. sherehan ali" />
             </div>
-            <small
-              style={{
-                display: 'block',
-                marginTop: 6,
-                color: 'var(--ink-soft)',
-              }}
-            >
-              الرقم الكامل: <b>+{fullPhone() || '—'}</b>
-            </small>
-          </div>
 
-          <button
-            className="btn btn-teal btn-block"
-            type="submit"
-            disabled={saving}
-          >
-            {saving ? 'جاري الحفظ...' : '💾 حفظ'}
-          </button>
-
-          {msg.text && (
-            <div
-              className={`form-msg ${msg.type}`}
-              style={{ display: 'block' }}
-            >
-              {msg.text}
+            <div className="field">
+              <label>رقم واتساب</label>
+              <div className="phone-row">
+                <select value={countryDial} onChange={(e) => setCountryDial(e.target.value)}>
+                  {COUNTRIES.map((c) => (
+                    <option key={c.dial} value={c.dial}>+{c.dial} — {c.ar}</option>
+                  ))}
+                </select>
+                <input type="tel" dir="ltr" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="10XXXXXXXX" inputMode="numeric" />
+              </div>
+              <small className="hint">
+                الرقم الكامل: <b dir="ltr">+{phone || '—'}</b>
+                {phone && (
+                  <>
+                    {' · '}
+                    <a href={`https://wa.me/${phone}`} target="_blank" rel="noopener noreferrer" className="link-chip">جرّب الرقم ↗</a>
+                  </>
+                )}
+              </small>
             </div>
-          )}
-        </form>
-      </div>
 
-      <div className="card" style={{ maxWidth: 560, marginTop: 20 }}>
-        <h3 style={{ marginTop: 0, color: 'var(--navy-deep)' }}>ℹ️ معلومات</h3>
-        <p style={{ color: 'var(--ink-soft)', fontSize: 14 }}>
-          الإعدادات دي بتظهر في كل الموقع:
-        </p>
-        <ul
-          style={{
-            color: 'var(--ink-soft)',
-            fontSize: 14,
-            paddingInlineStart: 20,
-          }}
-        >
-          <li>
-            <b>اسم الأونر:</b> يظهر في الفوتر وصفحات الموقع.
-          </li>
-          <li>
-            <b>رقم واتساب:</b> يظهر في زرار الواتساب العائم وفي روابط
-            الاشتراك.
-          </li>
-        </ul>
+            <button className="btn btn-teal btn-block" type="submit" disabled={saving}>
+              {saving ? 'جاري الحفظ...' : '💾 حفظ'}
+            </button>
+
+            {msg.text && <div className={`form-msg ${msg.type}`}>{msg.text}</div>}
+          </form>
+        </div>
+
+        <div className="card settings-card info">
+          <h3>ℹ️ بتظهر فين؟</h3>
+          <ul>
+            <li><b>اسم الأونر:</b> في الفوتر وصفحات الموقع.</li>
+            <li><b>رقم واتساب:</b> في زرار الواتساب العائم وفي روابط الاشتراك.</li>
+          </ul>
+        </div>
       </div>
     </>
   );

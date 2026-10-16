@@ -1,7 +1,8 @@
 /* ============================================================
-   🎬 CoursePlayer — مشغل الكورس (تصميم عمودين)
+   🎬 CoursePlayer — مشغل الكورس
+   فيديوهات درايف بتتشغل مباشرة من Google Drive (iframe عادي)
    ============================================================ */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import Comments from './Comments';
@@ -64,11 +65,48 @@ function CoursePlayer({ course, onClose }) {
   const [watchedIds, setWatchedIds] = useState(new Set());
   const [progress, setProgress] = useState({ watched: 0, total: 0, pct: 0 });
   const [showQuiz, setShowQuiz] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ افتراضي مقفول على الموبايل
 
-  /* قفل بالـ Esc ومنع سكرول الصفحة */
+  /* تكبير الشاشة من جوه الموقع (مش من درايف) */
+  const wrapRef = useRef(null);
+  const [isFs, setIsFs] = useState(false);
+  const [theater, setTheater] = useState(false);
+
+  function toggleEnlarge() {
+    const el = wrapRef.current;
+    if (!el) return;
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fsEl) {
+      (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+      return;
+    }
+    if (theater) { setTheater(false); return; }
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) { setTheater(true); return; }   // iPhone: وضع المسرح
+    try {
+      const r = req.call(el);
+      if (r && r.catch) r.catch(() => setTheater(true));
+    } catch {
+      setTheater(true);
+    }
+  }
+
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
+    const onFs = () => setIsFs(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    document.addEventListener('fullscreenchange', onFs);
+    document.addEventListener('webkitfullscreenchange', onFs);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFs);
+      document.removeEventListener('webkitfullscreenchange', onFs);
+    };
+  }, []);
+
+  /* قفل بالـ Esc ومنع سكرول الصفحة ورا المودال */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (theater) setTheater(false);
+      else onClose();
+    };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -76,7 +114,7 @@ function CoursePlayer({ course, onClose }) {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose]);
+  }, [onClose, theater]);
 
   useEffect(() => {
     async function load() {
@@ -85,12 +123,7 @@ function CoursePlayer({ course, onClose }) {
         supabase.from('lessons').select('*').eq('course_id', course.id).order('sort_order'),
         supabase.from('course_ratings').select('rating').eq('course_id', course.id),
         profile
-          ? supabase
-              .from('course_ratings')
-              .select('*')
-              .eq('course_id', course.id)
-              .eq('student_id', profile.id)
-              .maybeSingle()
+          ? supabase.from('course_ratings').select('*').eq('course_id', course.id).eq('student_id', profile.id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
 
@@ -111,10 +144,7 @@ function CoursePlayer({ course, onClose }) {
 
       const ratings = ratingsRes.data || [];
       const total = ratings.reduce((a, r) => a + r.rating, 0);
-      setRatingStats({
-        avg: ratings.length ? (total / ratings.length).toFixed(1) : 0,
-        count: ratings.length,
-      });
+      setRatingStats({ avg: ratings.length ? (total / ratings.length).toFixed(1) : 0, count: ratings.length });
       if (myRatingRes.data) {
         setMyRating(myRatingRes.data.rating);
         setRating(myRatingRes.data.rating);
@@ -126,16 +156,10 @@ function CoursePlayer({ course, onClose }) {
           .select('lesson_id, watched')
           .eq('student_id', profile.id)
           .in('lesson_id', lessonsData.map((l) => l.id));
-        const watchedSet = new Set(
-          (progressData || []).filter((p) => p.watched).map((p) => p.lesson_id)
-        );
+        const watchedSet = new Set((progressData || []).filter((p) => p.watched).map((p) => p.lesson_id));
         setWatchedIds(watchedSet);
         const w = lessonsData.filter((l) => watchedSet.has(l.id)).length;
-        setProgress({
-          watched: w,
-          total: lessonsData.length,
-          pct: Math.round((w / lessonsData.length) * 100),
-        });
+        setProgress({ watched: w, total: lessonsData.length, pct: Math.round((w / lessonsData.length) * 100) });
       }
       setLoading(false);
     }
@@ -149,21 +173,14 @@ function CoursePlayer({ course, onClose }) {
 
     await supabase
       .from('lesson_progress')
-      .upsert(
-        { lesson_id: lesson.id, student_id: profile.id, watched: true },
-        { onConflict: 'lesson_id,student_id' }
-      );
+      .upsert({ lesson_id: lesson.id, student_id: profile.id, watched: true }, { onConflict: 'lesson_id,student_id' });
 
     const newSet = new Set(watchedIds);
     newSet.add(lesson.id);
     setWatchedIds(newSet);
     const real = lessons.filter((l) => !l.is_intro);
     const w = real.filter((l) => newSet.has(l.id)).length;
-    setProgress({
-      watched: w,
-      total: real.length,
-      pct: real.length ? Math.round((w / real.length) * 100) : 0,
-    });
+    setProgress({ watched: w, total: real.length, pct: real.length ? Math.round((w / real.length) * 100) : 0 });
   }
 
   async function submitRating(value) {
@@ -171,10 +188,7 @@ function CoursePlayer({ course, onClose }) {
     setRating(value);
     const { error } = await supabase
       .from('course_ratings')
-      .upsert(
-        { course_id: course.id, student_id: profile.id, rating: value },
-        { onConflict: 'course_id,student_id' }
-      );
+      .upsert({ course_id: course.id, student_id: profile.id, rating: value }, { onConflict: 'course_id,student_id' });
     if (error) {
       console.error(error);
       return;
@@ -204,8 +218,7 @@ function CoursePlayer({ course, onClose }) {
           key={id}
           title={activeLesson.title_ar}
           src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
+          allow="autoplay; encrypted-media"
           onContextMenu={noMenu}
         />
       );
@@ -219,29 +232,28 @@ function CoursePlayer({ course, onClose }) {
           key={id}
           title={activeLesson.title_ar}
           src={`https://player.vimeo.com/video/${m[1]}?autoplay=1&title=0&byline=0&portrait=0`}
-          allow="autoplay; fullscreen"
-          allowFullScreen
+          allow="autoplay"
           onContextMenu={noMenu}
         />
       );
     }
 
+    /* ✅ درايف: مشغل جوجل نفسه، من غير سكربت */
     if (video_type === 'drive') {
       const driveId = extractDriveId(video_url);
-      if (!driveId) return <VideoError text="رابط Google Drive غلط" />;
+      if (!driveId) return <VideoError text="رابط Google Drive غلط، اتأكد إنه رابط مشاركة" />;
       return (
-        <div className="drive-wrap">
+        <>
           <iframe
             key={id}
             title={activeLesson.title_ar}
             src={`https://drive.google.com/file/d/${driveId}/preview`}
             allow="autoplay"
-            onContextMenu={noMenu}
           />
-          <div className="drive-shield" aria-hidden="true" />
-          <div className="drive-shield-top-right" aria-hidden="true" />
-          <div className="drive-shield-download" aria-hidden="true" />
-        </div>
+          {/* دروع بتغطي زرار فتح الفيديو في درايف وزرار التكبير بتاعه */}
+          <div className="drive-shield shield-top" aria-hidden="true" onContextMenu={noMenu} />
+          <div className="drive-shield shield-bottom" aria-hidden="true" onContextMenu={noMenu} />
+        </>
       );
     }
 
@@ -254,20 +266,14 @@ function CoursePlayer({ course, onClose }) {
             controls
             autoPlay
             playsInline
-            controlsList="nodownload noplaybackrate"
+            controlsList="nodownload noremoteplayback"
             disablePictureInPicture
             onContextMenu={noMenu}
           />
         );
       }
       return (
-        <iframe
-          key={id}
-          title={activeLesson.title_ar}
-          src={video_url}
-          allow="autoplay"
-          onContextMenu={noMenu}
-        />
+        <iframe key={id} title={activeLesson.title_ar} src={video_url} allow="autoplay" onContextMenu={noMenu} />
       );
     }
 
@@ -277,151 +283,110 @@ function CoursePlayer({ course, onClose }) {
   const realCount = lessons.filter((l) => !l.is_intro).length;
 
   return (
-    <div className="overlay open" onClick={onClose}>
-      <div
-        className={`course-player-modal${sidebarOpen ? '' : ' sidebar-closed'}`}
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* زر الإغلاق */}
+    <div className={`overlay open${theater ? ' has-theater' : ''}`} onClick={onClose}>
+      <div className="course-player-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <button className="close" onClick={onClose} aria-label="إغلاق">✕</button>
 
-        {/* زر إظهار/إخفاء الشريط الجانبي */}
-        <button
-          className="toggle-sidebar-btn"
-          onClick={() => setSidebarOpen((v) => !v)}
-          aria-label={sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
-          title={sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'}
-        >
-          {sidebarOpen ? '»' : '☰'}
-        </button>
+        <div ref={wrapRef} className={`video-wrapper${theater ? ' theater' : ''}`}>
+          <div id="video-player">{renderVideo()}</div>
 
-        <div className="player-layout">
-          {/* ====== العمود الأيسر: الفيديو ====== */}
-          <div className="player-main">
-            <div className="video-wrapper">
-              <div id="video-player">{renderVideo()}</div>
+          {profile && (
+            <div className="wm" aria-hidden="true">
+              {profile.full_name} · {profile.phone || profile.email}
             </div>
+          )}
 
-            {activeLesson && (
-              <div className="video-details">
-                <h3>{activeLesson.title_ar}</h3>
-                {activeLesson.description_ar && <p>{activeLesson.description_ar}</p>}
-              </div>
-            )}
-
-            {profile && activeLesson && !activeLesson.is_intro && (
-              <div className="quiz-cta">
-                <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>
-                  🎓 ابدأ امتحان الدرس
-                </button>
-              </div>
-            )}
-
-            {profile && activeLesson && !activeLesson.is_intro && (
-              <Comments lessonId={activeLesson.id} />
-            )}
-          </div>
-
-          {/* ====== العمود الأيمن: الشريط الجانبي ====== */}
-          <aside className="player-sidebar">
-            <div className="course-player-head">
-              <h2>{course.title_ar}</h2>
-              <div className="player-meta">
-                <span className="meta-chip">
-                  ⭐ {ratingStats.avg} <small>({ratingStats.count})</small>
-                </span>
-                <span className="meta-chip">📹 {realCount} فيديو</span>
-              </div>
-            </div>
-
-            {progress.total > 0 && (
-              <div className="pp-wrap">
-                <div className="pp-top">
-                  <span>📊 تقدمك</span>
-                  <b>
-                    {progress.watched} / {progress.total} · {progress.pct}%
-                  </b>
-                </div>
-                <div
-                  className="pp-bar"
-                  role="progressbar"
-                  aria-valuenow={progress.pct}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                >
-                  <div className="pp-fill" style={{ width: `${progress.pct}%` }} />
-                </div>
-              </div>
-            )}
-
-            {loading ? (
-              <div className="empty-state">جاري التحميل...</div>
-            ) : lessons.length === 0 ? (
-              <div className="empty-state">لسه مفيش فيديوهات</div>
-            ) : (
-              <div className="lessons-list">
-                {lessons.map((lesson, i) => {
-                  const isWatched = watchedIds.has(lesson.id) && !lesson.is_intro;
-                  const isActive = activeLesson?.id === lesson.id;
-                  const thumb = getVideoThumbnail(lesson.video_type, lesson.video_url);
-                  return (
-                    <div
-                      key={lesson.id}
-                      className={`lesson-item${isActive ? ' active' : ''}${isWatched ? ' done' : ''}`}
-                      onClick={() => playLesson(lesson)}
-                    >
-                      <div className="lesson-thumb">
-                        {thumb ? (
-                          <img src={thumb} alt="" loading="lazy" />
-                        ) : (
-                          <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>
-                        )}
-                        <div className="lesson-play">
-                          <svg viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
-                        <span className={`lesson-num${lesson.is_intro ? ' intro' : ''}`}>
-                          {lesson.is_intro ? 'مقدمة' : i}
-                        </span>
-                        {isWatched && <span className="lesson-check">✓</span>}
-                      </div>
-                      <div className="lesson-info">
-                        <h4>{lesson.title_ar}</h4>
-                        {lesson.description_ar && <p>{lesson.description_ar}</p>}
-                        {lesson.duration_min > 0 && (
-                          <span className="lesson-duration">⏱️ {lesson.duration_min} د</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="course-rating-section">
-              <h3>قيّم الكورس</h3>
-              <div className="rating-stars">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <span
-                    key={n}
-                    className={`star ${rating >= n ? 'active' : ''}`}
-                    onClick={() => submitRating(n)}
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
-            </div>
-          </aside>
+          {activeLesson && (
+            <button type="button" className="enlarge-btn" onClick={toggleEnlarge} aria-label="تكبير الشاشة">
+              {isFs || theater ? '🗗 تصغير' : '⛶ تكبير'}
+            </button>
+          )}
         </div>
 
-        {showQuiz && activeLesson && (
-          <LessonQuiz lesson={activeLesson} onClose={() => setShowQuiz(false)} />
+        {activeLesson && (
+          <div className="video-details">
+            <h3>{activeLesson.title_ar}</h3>
+            {activeLesson.description_ar && <p>{activeLesson.description_ar}</p>}
+          </div>
         )}
+
+        <div className="course-player-head">
+          <h2>{course.title_ar}</h2>
+          <div className="player-meta">
+            <span className="meta-chip">⭐ {ratingStats.avg} <small>({ratingStats.count} تقييم)</small></span>
+            <span className="meta-chip">📹 {realCount} فيديو</span>
+          </div>
+        </div>
+
+        {progress.total > 0 && (
+          <div className="pp-wrap">
+            <div className="pp-top">
+              <span>📊 تقدمك في الكورس</span>
+              <b>{progress.watched} / {progress.total} · {progress.pct}%</b>
+            </div>
+            <div className="pp-bar" role="progressbar" aria-valuenow={progress.pct} aria-valuemin="0" aria-valuemax="100">
+              <div className="pp-fill" style={{ width: `${progress.pct}%` }} />
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="empty-state">جاري التحميل...</div>
+        ) : lessons.length === 0 ? (
+          <div className="empty-state">لسه مفيش فيديوهات في الكورس ده</div>
+        ) : (
+          <div className="lessons-list">
+            {lessons.map((lesson, i) => {
+              const isWatched = watchedIds.has(lesson.id) && !lesson.is_intro;
+              const isActive = activeLesson?.id === lesson.id;
+              const thumb = getVideoThumbnail(lesson.video_type, lesson.video_url);
+              return (
+                <div
+                  key={lesson.id}
+                  className={`lesson-item${isActive ? ' active' : ''}${isWatched ? ' done' : ''}`}
+                  onClick={() => playLesson(lesson)}
+                >
+                  <div className="lesson-thumb">
+                    {thumb ? (
+                      <img src={thumb} alt="" loading="lazy" />
+                    ) : (
+                      <div className="lesson-placeholder">{lesson.is_intro ? '🎬' : '🎥'}</div>
+                    )}
+                    <div className="lesson-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></div>
+                    <span className={`lesson-num${lesson.is_intro ? ' intro' : ''}`}>{lesson.is_intro ? 'مقدمة' : i}</span>
+                    {isWatched && <span className="lesson-check">✓</span>}
+                  </div>
+                  <div className="lesson-info">
+                    <h4>{lesson.title_ar}</h4>
+                    {lesson.description_ar && <p>{lesson.description_ar}</p>}
+                    {lesson.duration_min > 0 && <span className="lesson-duration">⏱️ {lesson.duration_min} دقيقة</span>}
+                  </div>
+                  {isActive && <span className="now-playing">شغّال دلوقتي</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="course-rating-section">
+          <h3>قيّم الكورس</h3>
+          <div className="rating-stars">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span key={n} className={`star ${rating >= n ? 'active' : ''}`} onClick={() => submitRating(n)}>★</span>
+            ))}
+          </div>
+          {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
+        </div>
+
+        {profile && activeLesson && !activeLesson.is_intro && (
+          <div className="quiz-cta">
+            <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>🎓 ابدأ امتحان الدرس</button>
+          </div>
+        )}
+
+        {profile && activeLesson && !activeLesson.is_intro && <Comments lessonId={activeLesson.id} />}
+
+        {showQuiz && activeLesson && <LessonQuiz lesson={activeLesson} onClose={() => setShowQuiz(false)} />}
       </div>
     </div>
   );

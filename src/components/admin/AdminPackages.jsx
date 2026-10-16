@@ -4,6 +4,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
 import AdminFormModal from './AdminFormModal';
+import { AdminToolbar, StateRow, RowActions } from './AdminUI';
+
+const EMPTY = {
+  name_ar: '',
+  name_en: '',
+  grade_level_id: '',
+  price: 0,
+  duration_days: 30,
+  description_ar: '',
+  is_active: true,
+};
 
 function AdminPackages() {
   const [packages, setPackages] = useState([]);
@@ -14,24 +25,12 @@ function AdminPackages() {
   const [editing, setEditing] = useState(null);
   const [msg, setMsg] = useState('');
   const [search, setSearch] = useState('');
-
-  const [form, setForm] = useState({
-    name_ar: '',
-    name_en: '',
-    grade_level_id: '',
-    price: 0,
-    duration_days: 30,
-    description_ar: '',
-    is_active: true,
-  });
+  const [form, setForm] = useState(EMPTY);
 
   async function loadData() {
     setLoading(true);
     const [pkgRes, lvRes] = await Promise.all([
-      supabase
-        .from('packages')
-        .select('*')
-        .order('created_at', { ascending: false }),
+      supabase.from('packages').select('*').order('created_at', { ascending: false }),
       supabase.from('grade_levels').select('*').order('sort_order'),
     ]);
     setPackages(pkgRes.data || []);
@@ -45,15 +44,7 @@ function AdminPackages() {
 
   function openAddModal() {
     setEditing(null);
-    setForm({
-      name_ar: '',
-      name_en: '',
-      grade_level_id: levels[0]?.id || '',
-      price: 0,
-      duration_days: 30,
-      description_ar: '',
-      is_active: true,
-    });
+    setForm({ ...EMPTY, grade_level_id: levels[0]?.id || '' });
     setMsg('');
     setModalOpen(true);
   }
@@ -96,10 +87,7 @@ function AdminPackages() {
 
     let error;
     if (editing) {
-      ({ error } = await supabase
-        .from('packages')
-        .update(payload)
-        .eq('id', editing.id));
+      ({ error } = await supabase.from('packages').update(payload).eq('id', editing.id));
     } else {
       ({ error } = await supabase.from('packages').insert(payload));
     }
@@ -115,52 +103,45 @@ function AdminPackages() {
     await loadData();
   }
 
-  async function handleDelete(id) {
-    if (!confirm('متأكد إنك عايز تحذف الباقة دي؟')) return;
-    const { error } = await supabase.from('packages').delete().eq('id', id);
+  async function handleDelete(p) {
+    if (!confirm(`متأكد إنك عايز تحذف باقة "${p.name_ar}"؟`)) return;
+    const { error } = await supabase.from('packages').delete().eq('id', p.id);
     if (error) {
-      alert('❌ ' + error.message);
+      alert('❌ ' + error.message + '\n\n(لو فيه اشتراكات على الباقة دي، وقّفها بدل ما تحذفها)');
       return;
     }
     await loadData();
   }
 
-  function levelName(id) {
-    return levels.find((l) => l.id === id)?.name_ar || '—';
+  async function toggleActive(p) {
+    const { error } = await supabase.from('packages').update({ is_active: !p.is_active }).eq('id', p.id);
+    if (error) {
+      alert('❌ ' + error.message);
+      return;
+    }
+    setPackages((list) => list.map((x) => (x.id === p.id ? { ...x, is_active: !p.is_active } : x)));
   }
 
-  const filteredPackages = packages.filter(
-    (p) =>
-      (p.name_ar || '').toLowerCase().includes(search.toLowerCase()) ||
-      (p.name_en || '').toLowerCase().includes(search.toLowerCase())
+  const levelName = (id) => levels.find((l) => l.id === id)?.name_ar || '—';
+
+  const q = search.toLowerCase();
+  const filtered = packages.filter(
+    (p) => (p.name_ar || '').toLowerCase().includes(q) || (p.name_en || '').toLowerCase().includes(q)
   );
 
   return (
     <>
-      <div className="dash-head" style={{ flexWrap: 'wrap', gap: 10 }}>
-        <h1>الباقات</h1>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            placeholder="🔍 ابحث في الباقات..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: '10px 16px',
-              border: '1.5px solid var(--line)',
-              borderRadius: 999,
-              fontSize: 14,
-              minWidth: 220,
-              background: '#fff',
-            }}
-          />
-          <button className="btn btn-gold btn-sm" onClick={openAddModal}>
-            + إضافة باقة
-          </button>
-        </div>
-      </div>
+      <AdminToolbar
+        title="الباقات"
+        count={packages.length}
+        search={search}
+        onSearch={setSearch}
+        placeholder="ابحث في الباقات..."
+        addLabel="إضافة باقة"
+        onAdd={openAddModal}
+      />
 
-      <div className="table-wrap">
+      <div className="table-wrap stack">
         <table>
           <thead>
             <tr>
@@ -173,53 +154,33 @@ function AdminPackages() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6">
-                  <div className="empty-state">جاري التحميل...</div>
-                </td>
-              </tr>
-            ) : filteredPackages.length === 0 ? (
-              <tr>
-                <td colSpan="6">
-                  <div className="empty-state">
-                    {search ? 'مفيش نتايج' : 'لسه مفيش باقات'}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredPackages.map((p) => (
+            <StateRow colSpan={6} loading={loading} />
+            <StateRow colSpan={6} empty={!loading && filtered.length === 0} text={search ? 'مفيش نتايج' : 'لسه مفيش باقات'} />
+            {!loading &&
+              filtered.map((p) => (
                 <tr key={p.id}>
-                  <td>
-                    <b>{p.name_ar}</b>
-                  </td>
-                  <td>{levelName(p.grade_level_id)}</td>
-                  <td>{p.price} ج.م</td>
-                  <td>{p.duration_days} يوم</td>
-                  <td>
-                    <span
-                      className={`badge ${p.is_active ? 'active' : 'expired'}`}
+                  <td data-label="الباقة"><b>{p.name_ar}</b></td>
+                  <td data-label="المرحلة"><span className="level-chip">{levelName(p.grade_level_id)}</span></td>
+                  <td data-label="السعر"><b className="price-cell">{Number(p.price).toLocaleString('ar-EG')} ج.م</b></td>
+                  <td data-label="المدة">{p.duration_days} يوم</td>
+                  <td data-label="الحالة">
+                    <button
+                      type="button"
+                      className={`badge btn-badge ${p.is_active ? 'active' : 'expired'}`}
+                      onClick={() => toggleActive(p)}
+                      title="اضغط للتبديل"
                     >
                       {p.is_active ? 'فعّالة' : 'موقوفة'}
-                    </span>
+                    </button>
                   </td>
-                  <td>
-                    <button
-                      className="icon-btn"
-                      onClick={() => openEditModal(p)}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="icon-btn danger"
-                      onClick={() => handleDelete(p.id)}
-                    >
-                      🗑️
-                    </button>
+                  <td data-label="إجراءات">
+                    <RowActions>
+                      <button className="icon-btn" onClick={() => openEditModal(p)} aria-label="تعديل">✏️ <span className="only-mobile">تعديل</span></button>
+                      <button className="icon-btn danger" onClick={() => handleDelete(p)} aria-label="حذف">🗑️ <span className="only-mobile">حذف</span></button>
+                    </RowActions>
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
         </table>
       </div>
@@ -233,82 +194,39 @@ function AdminPackages() {
       >
         <div className="field">
           <label>الاسم (عربي)</label>
-          <input
-            type="text"
-            value={form.name_ar}
-            onChange={(e) => setForm({ ...form, name_ar: e.target.value })}
-            required
-          />
+          <input type="text" value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} required />
         </div>
         <div className="field">
           <label>Name (English)</label>
-          <input
-            type="text"
-            value={form.name_en}
-            onChange={(e) => setForm({ ...form, name_en: e.target.value })}
-            required
-          />
+          <input type="text" dir="ltr" value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} required />
         </div>
         <div className="field">
           <label>المرحلة</label>
-          <select
-            value={form.grade_level_id}
-            onChange={(e) =>
-              setForm({ ...form, grade_level_id: e.target.value })
-            }
-            required
-          >
+          <select value={form.grade_level_id} onChange={(e) => setForm({ ...form, grade_level_id: e.target.value })} required>
             <option value="">— اختار مرحلة —</option>
             {levels.map((lv) => (
-              <option key={lv.id} value={lv.id}>
-                {lv.name_ar}
-              </option>
+              <option key={lv.id} value={lv.id}>{lv.name_ar}</option>
             ))}
           </select>
         </div>
-        <div className="field">
-          <label>السعر (ج.م)</label>
-          <input
-            type="number"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            min="0"
-          />
-        </div>
-        <div className="field">
-          <label>المدة (يوم)</label>
-          <input
-            type="number"
-            value={form.duration_days}
-            onChange={(e) =>
-              setForm({ ...form, duration_days: e.target.value })
-            }
-            min="1"
-          />
+        <div className="field-row">
+          <div className="field">
+            <label>السعر (ج.م)</label>
+            <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} min="0" />
+          </div>
+          <div className="field">
+            <label>المدة (يوم)</label>
+            <input type="number" value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: e.target.value })} min="1" />
+          </div>
         </div>
         <div className="field">
           <label>الوصف</label>
-          <textarea
-            rows="3"
-            value={form.description_ar}
-            onChange={(e) =>
-              setForm({ ...form, description_ar: e.target.value })
-            }
-          />
+          <textarea rows="3" value={form.description_ar} onChange={(e) => setForm({ ...form, description_ar: e.target.value })} />
         </div>
-        <div className="field">
-          <label>
-            <input
-              type="checkbox"
-              checked={form.is_active}
-              onChange={(e) =>
-                setForm({ ...form, is_active: e.target.checked })
-              }
-              style={{ marginInlineEnd: 8 }}
-            />
-            فعّالة
-          </label>
-        </div>
+        <label className="check-row">
+          <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+          <span>الباقة فعّالة (تظهر للطلاب)</span>
+        </label>
         {msg && <div className="form-msg error">{msg}</div>}
       </AdminFormModal>
     </>
