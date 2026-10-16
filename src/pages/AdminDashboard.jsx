@@ -15,12 +15,12 @@ function AdminDashboard() {
   const [tab, setTab] = useState('overview');
 
   const tabs = [
-    { id: 'overview', label: 'نظرة عامة' },
-    { id: 'levels', label: 'المراحل الدراسية' },
-    { id: 'courses', label: 'الكورسات' },
-    { id: 'packages', label: 'الباقات' },
-    { id: 'students', label: 'الطلاب والاشتراكات' },
-    { id: 'settings', label: 'الإعدادات' },
+    { id: 'overview', label: '📊 نظرة عامة' },
+    { id: 'levels', label: '🪜 المراحل الدراسية' },
+    { id: 'courses', label: '🎬 الكورسات' },
+    { id: 'packages', label: '🎁 الباقات' },
+    { id: 'students', label: '👩‍🎓 الطلاب والاشتراكات' },
+    { id: 'settings', label: '⚙️ الإعدادات' },
   ];
 
   return (
@@ -40,7 +40,7 @@ function AdminDashboard() {
         ))}
 
         <a href="#" className="logout" onClick={(e) => { e.preventDefault(); signOut(); }}>
-          تسجيل الخروج
+          🚪 تسجيل الخروج
         </a>
       </aside>
 

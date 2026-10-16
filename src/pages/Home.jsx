@@ -91,17 +91,25 @@ function Home() {
           </div>
 
           <div className="hero-visual">
-            <div className="stat">
-              <span>مراحل دراسية</span>
-              <b>{loading ? '—' : levels.length}</b>
+            <div className="lesson-note">
+              <small>Today's grammar tip</small>
+              <p>She <mark>has studied</mark> English for 3 years.</p>
+              <span className="tag">Present Perfect</span>
+              <span className="tag">has / have + V3</span>
             </div>
-            <div className="stat">
-              <span>كورسات</span>
-              <b>{loading ? '—' : courseCount}</b>
-            </div>
-            <div className="stat">
-              <span>باقات اشتراك</span>
-              <b>{loading ? '—' : packages.length}</b>
+            <div className="stat-row">
+              <div className="stat">
+                <span>مراحل دراسية</span>
+                <b>{loading ? '—' : levels.length}</b>
+              </div>
+              <div className="stat">
+                <span>كورسات</span>
+                <b>{loading ? '—' : courseCount}</b>
+              </div>
+              <div className="stat">
+                <span>باقات</span>
+                <b>{loading ? '—' : packages.length}</b>
+              </div>
             </div>
           </div>
         </div>
@@ -110,7 +118,7 @@ function Home() {
       {/* ============================================================
           SEARCH
           ============================================================ */}
-      <section className="block" id="search-section" style={{ padding: '30px 0' }}>
+      <section className="block" id="search-section" style={{ padding: '30px 0 0' }}>
         <div className="container">
           <div className="search-box">
             <input
