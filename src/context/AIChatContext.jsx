@@ -7,7 +7,13 @@ import { useAuth } from './AuthContext';
 
 const AIChatContext = createContext(null);
 
-const API_URL = import.meta.env.VITE_AI_API_URL || 'https://basetna-english.vercel.app';
+/* العنوان: المتغير لو موجود، وإلا نفس دومين الموقع (من غير CORS). محلياً (localhost) بنكلّم الموقع المنشور. */
+const API_URL = (
+  import.meta.env.VITE_AI_API_URL ||
+  (typeof window !== 'undefined' && !/^(localhost|127\.)/.test(window.location.hostname)
+    ? window.location.origin
+    : 'https://basetna-english.online')
+).replace(/\/+$/, '');
 const LS_PREFIX = 'basetna_ai_chat';
 const HISTORY_LIMIT = 10;
 const STORED_LIMIT = 30;
@@ -85,7 +91,7 @@ export function AIChatProvider({ children }) {
       let res;
       let data = null;
       try {
-        res = await fetch(`${API_URL.replace(/\/+$/, '')}/api/ai`, {
+        res = await fetch(`${API_URL}/api/ai`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ messages }),
