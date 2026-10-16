@@ -1,45 +1,47 @@
+/* ============================================================
+   🛟 SupportModal — الشات (الغرفة العامة / الميس / الدعم)
+   ============================================================ */
 import { useState, useEffect, useRef } from 'react';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 
+const ROLE_EMOJI = { superadmin: '👑', owner: '👩‍🏫', support: '🛠️' };
+const ROLE_LABEL = { superadmin: 'مدير', owner: 'الميس', support: 'دعم فني', student: 'طالب' };
+
+const TITLES = {
+  general: { title: '💬 الغرفة العامة', sub: 'كل الطلاب والميس والدعم' },
+  owner: { title: '👩‍🏫 مس. شيرهان علي', sub: 'تواصل مع الميس' },
+  support: { title: '🛠️ الدعم الفني', sub: 'الدعم الفني للمنصة' },
+};
+
 function SupportModal() {
   const { showSupport, setShowSupport, supportType } = useUI();
-  const { user, profile } = useAuth();
-  const { messages, loading, sendMessage, openRoom, currentRoom } = useChat();
+  const { user } = useAuth();
+  const { messages, loading, sendMessage, openRoom } = useChat();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef(null);
+  const endRef = useRef(null);
 
-  /* ============================================================
-     فتح الغرفة لما النافذة تفتح
-     ============================================================ */
   useEffect(() => {
-    if (showSupport && user) {
-      openRoom(supportType);
-    }
+    if (showSupport && user) openRoom(supportType);
   }, [showSupport, supportType, user, openRoom]);
 
-  /* ============================================================
-     Scroll لآخر رسالة
-     ============================================================ */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, showSupport]);
+
+  useEffect(() => {
+    if (!showSupport) return;
+    const onKey = (e) => e.key === 'Escape' && setShowSupport(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showSupport, setShowSupport]);
 
   if (!showSupport) return null;
 
-  /* عناوين الغرف */
-  const titles = {
-    general: { title: '💬 الغرفة العامة', sub: 'كل الطلاب والميس والدعم' },
-    owner: { title: '👩‍🏫 مس. شيرهان علي', sub: 'تواصلي مع الميس' },
-    support: { title: '🛠️ الدعم الفني', sub: 'الدعم الفني للمنصة' },
-  };
-  const info = titles[supportType] || titles.support;
+  const info = TITLES[supportType] || TITLES.support;
 
-  /* ============================================================
-     إرسال رسالة
-     ============================================================ */
   async function handleSend() {
     if (!input.trim() || sending) return;
     setSending(true);
@@ -54,9 +56,8 @@ function SupportModal() {
     }
   }
 
-  /* Enter للإرسال */
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSend();
     }
@@ -64,59 +65,46 @@ function SupportModal() {
 
   return (
     <div className="overlay open" onClick={() => setShowSupport(false)}>
-      <div className="support-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="close" onClick={() => setShowSupport(false)}>✕</button>
+      <div className="support-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <button className="close" type="button" onClick={() => setShowSupport(false)} aria-label="إغلاق">✕</button>
 
         <div className="support-head">
           <h3>{info.title}</h3>
           <p>{info.sub}</p>
         </div>
 
-        {/* ============================================================
-            الرسائل
-            ============================================================ */}
         <div className="support-messages">
           {!user ? (
             <div className="empty-state">سجّل دخولك الأول عشان تقدر تستخدم الشات</div>
           ) : loading ? (
-            <div className="empty-state">جاري التحميل...</div>
+            <div className="skeleton-list" style={{ padding: 0 }}><span /><span /><span /></div>
           ) : messages.length === 0 ? (
             <div className="empty-state">لسه مفيش رسائل 👋 ابدأ الكلام</div>
           ) : (
             messages.map((m) => {
               const isMine = m.sender_id === user.id;
-              const time = new Date(m.created_at).toLocaleString('ar-EG', {
-                hour: '2-digit',
-                minute: '2-digit',
-              });
-              const roleEmoji =
-                m.sender_role === 'superadmin' ? '👑' :
-                m.sender_role === 'owner' ? '👩‍🏫' :
-                m.sender_role === 'support' ? '🛠️' : '🎓';
-
+              const staff = !!ROLE_EMOJI[m.sender_role];
+              const time = new Date(m.created_at).toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit' });
               return (
-                <div key={m.id} className={`msg ${isMine ? 'mine' : ''}`}>
-                  {!isMine && <div className="msg-avatar">{roleEmoji}</div>}
+                <div key={m.id} className={`msg${isMine ? ' mine' : ''}${staff && !isMine ? ' admin-msg' : ''}`}>
+                  {!isMine && <div className="msg-avatar">{ROLE_EMOJI[m.sender_role] || '🎓'}</div>}
                   <div className="msg-bubble">
                     {!isMine && (
                       <div className="msg-name">
                         {m.sender_name}
-                        <span className="role-tag">{m.sender_role}</span>
+                        <span className="role-tag">{ROLE_LABEL[m.sender_role] || m.sender_role}</span>
                       </div>
                     )}
-                    <div className="msg-text">{m.content}</div>
+                    <div className="msg-text" dir="auto">{m.content}</div>
                     <div className="msg-time">{time}</div>
                   </div>
                 </div>
               );
             })
           )}
-          <div ref={messagesEndRef} />
+          <div ref={endRef} />
         </div>
 
-        {/* ============================================================
-            الإدخال
-            ============================================================ */}
         <div className="support-input-row">
           <input
             type="text"
@@ -125,12 +113,9 @@ function SupportModal() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={!user || sending}
+            autoFocus
           />
-          <button
-            className="btn btn-teal btn-sm"
-            onClick={handleSend}
-            disabled={!user || sending || !input.trim()}
-          >
+          <button type="button" className="btn btn-teal btn-sm" onClick={handleSend} disabled={!user || sending || !input.trim()}>
             {sending ? '...' : 'إرسال'}
           </button>
         </div>
