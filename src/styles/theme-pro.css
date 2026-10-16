@@ -795,3 +795,145 @@ body:has(.support-links) .fab-backdrop{display:none !important;}
   .side-title{display:none;}
   .support-links a{flex-shrink:0;}
 }
+
+/* ---------- شاشة اختيار صفة الرد ---------- */
+button.role-choice{width:100%;font-family:var(--font);text-align:start;}
+.role-choice-title,.role-choice-desc{display:block;}
+.role-choice.current{border-color:var(--gold);background:#FFFBF0;}
+.role-current-tag{flex-shrink:0;background:var(--gold);color:#fff;font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:8px;}
+.private-chat-banner b{margin-inline-start:2px;}
+
+/* ============================================================
+   🌙 الوضع الداكن للمكونات الجديدة
+   (theme-dark.css بيتحمّل بعدي وبيكسب لو اتعارض)
+   ============================================================ */
+html[data-theme='dark']{
+  --d-surface:#12233D; --d-surface-2:#1A2D4B; --d-line:#27405F;
+  --d-ink:#E6EDF7; --d-soft:#A3B3CA;
+}
+html[data-theme='dark'] body{background:#0A1424;color:var(--d-ink);}
+
+/* أسطح بيضاء اتحطت في الستايل الجديد */
+html[data-theme='dark'] .card,
+html[data-theme='dark'] .course-card,
+html[data-theme='dark'] .table-wrap,
+html[data-theme='dark'] .stack tr,
+html[data-theme='dark'] .empty-state,
+html[data-theme='dark'] .points-card,
+html[data-theme='dark'] .skeleton-card,
+html[data-theme='dark'] .video-details,
+html[data-theme='dark'] .lesson-item,
+html[data-theme='dark'] .lm-item,
+html[data-theme='dark'] .qz-q,
+html[data-theme='dark'] .qz-opt,
+html[data-theme='dark'] .cm-bubble,
+html[data-theme='dark'] .info-box,
+html[data-theme='dark'] .qz-rules,
+html[data-theme='dark'] .role-choice,
+html[data-theme='dark'] .welcome-choice,
+html[data-theme='dark'] .fab-text,
+html[data-theme='dark'] .img-up-drop{
+  background:var(--d-surface) !important;border-color:var(--d-line) !important;color:var(--d-ink);
+}
+html[data-theme='dark'] .kpi{background:var(--d-surface) !important;border-color:var(--d-line) !important;}
+html[data-theme='dark'] .kpi .num{color:var(--d-ink);}
+html[data-theme='dark'] .modal,
+html[data-theme='dark'] .support-modal,
+html[data-theme='dark'] .course-player-modal,
+html[data-theme='dark'] .modal-actions,
+html[data-theme='dark'] .qz-bar{background:var(--d-surface);border-color:var(--d-line);color:var(--d-ink);}
+html[data-theme='dark'] .modal .close{background:var(--d-surface-2);color:var(--d-ink);}
+
+/* نصوص */
+html[data-theme='dark'] .qz-q h4,
+html[data-theme='dark'] .cm-head b,
+html[data-theme='dark'] .qz-score,
+html[data-theme='dark'] .points-num,
+html[data-theme='dark'] .price-cell,
+html[data-theme='dark'] .lm-info b,
+html[data-theme='dark'] .level-chip,
+html[data-theme='dark'] .meta-chip,
+html[data-theme='dark'] .welcome-title,
+html[data-theme='dark'] .role-choice-title,
+html[data-theme='dark'] .section-head h2,
+html[data-theme='dark'] .dash-head h1,
+html[data-theme='dark'] .modal h3,
+html[data-theme='dark'] .course-body h3{color:var(--d-ink);}
+html[data-theme='dark'] .qz-time{color:#5FD0B4;}
+html[data-theme='dark'] .qz-meta,
+html[data-theme='dark'] .cm-head small,
+html[data-theme='dark'] .lm-info p,
+html[data-theme='dark'] .lm-info small,
+html[data-theme='dark'] .hint,
+html[data-theme='dark'] .muted,
+html[data-theme='dark'] .dash-sub,
+html[data-theme='dark'] .next-badge{color:var(--d-soft);}
+
+/* حقول */
+html[data-theme='dark'] .field input,
+html[data-theme='dark'] .field select,
+html[data-theme='dark'] .field textarea,
+html[data-theme='dark'] .search-pill input,
+html[data-theme='dark'] .cm-form input,
+html[data-theme='dark'] .notes-box textarea,
+html[data-theme='dark'] .search-box input,
+html[data-theme='dark'] .phone-row select,
+html[data-theme='dark'] .support-input-row input{
+  background:var(--d-surface-2);border-color:var(--d-line);color:var(--d-ink);
+}
+html[data-theme='dark'] ::placeholder{color:var(--d-soft);opacity:.8;}
+
+/* أجزاء ملونة فاتحة */
+html[data-theme='dark'] .level-chip,
+html[data-theme='dark'] .meta-chip,
+html[data-theme='dark'] .qz-letter,
+html[data-theme='dark'] .cm-ava,
+html[data-theme='dark'] .btn-ghost,
+html[data-theme='dark'] .icon-btn,
+html[data-theme='dark'] .table-wrap thead th{background:var(--d-surface-2);border-color:var(--d-line);color:var(--d-ink);}
+html[data-theme='dark'] .icon-btn.danger{background:rgba(179,67,44,.25);color:#F3B8A6;}
+html[data-theme='dark'] .icon-btn.primary,
+html[data-theme='dark'] .icon-btn.ai{color:#fff;}
+html[data-theme='dark'] .icon-btn.primary{background:var(--teal);}
+html[data-theme='dark'] .icon-btn.ai{background:var(--purple);}
+html[data-theme='dark'] th,html[data-theme='dark'] td{border-color:var(--d-line);}
+html[data-theme='dark'] .table-wrap tbody tr:hover{background:rgba(255,255,255,.04);}
+html[data-theme='dark'] .skeleton-list span,
+html[data-theme='dark'] .sk-thumb,
+html[data-theme='dark'] .sk-line{background:linear-gradient(90deg,#1A2D4B 25%,#223A5E 50%,#1A2D4B 75%);background-size:200% 100%;}
+html[data-theme='dark'] .pp-bar,
+html[data-theme='dark'] .qz-track{background:var(--d-surface-2);border-color:var(--d-line);}
+html[data-theme='dark'] .badge.active{background:rgba(43,127,108,.28);color:#7BE0C3;}
+html[data-theme='dark'] .badge.expired{background:rgba(179,67,44,.28);color:#F3B8A6;}
+html[data-theme='dark'] .badge.none{background:var(--d-surface-2);color:var(--d-soft);}
+html[data-theme='dark'] .link-chip{background:rgba(43,127,108,.25);color:#7BE0C3;}
+html[data-theme='dark'] .info-box.warn{background:rgba(217,139,43,.18) !important;color:#F2D193;}
+html[data-theme='dark'] .notice-card.warn{background:rgba(217,139,43,.15) !important;}
+
+/* الامتحان */
+html[data-theme='dark'] .qz-opt:hover:not(:disabled){border-color:var(--gold) !important;}
+html[data-theme='dark'] .qz-opt.sel{background:rgba(201,154,59,.18) !important;border-color:var(--gold) !important;}
+html[data-theme='dark'] .qz-opt.right{background:rgba(43,127,108,.28) !important;border-color:var(--teal) !important;color:#7BE0C3;}
+html[data-theme='dark'] .qz-opt.wrong{background:rgba(179,67,44,.28) !important;border-color:var(--danger) !important;color:#F3B8A6;}
+html[data-theme='dark'] .qz-result.good{background:rgba(43,127,108,.22);}
+html[data-theme='dark'] .qz-result.bad{background:rgba(179,67,44,.22);}
+
+/* الدرس النشط والتعليقات */
+html[data-theme='dark'] .lesson-item.active{background:rgba(43,127,108,.2) !important;border-color:var(--teal) !important;}
+html[data-theme='dark'] .cm-bubble.staff{background:rgba(201,154,59,.14) !important;border-color:rgba(201,154,59,.4) !important;}
+
+/* المساعد الذكي */
+html[data-theme='dark'] .bai-panel{background:var(--d-surface);}
+html[data-theme='dark'] .bai-body{background:#0E1B30;}
+html[data-theme='dark'] .bai-msg.bot,
+html[data-theme='dark'] .bai-typing{background:var(--d-surface-2);border-color:var(--d-line);color:var(--d-ink);}
+html[data-theme='dark'] .bai-quick,
+html[data-theme='dark'] .bai-foot{background:var(--d-surface);border-color:var(--d-line);}
+html[data-theme='dark'] .bai-quick button{background:var(--d-surface-2);border-color:var(--d-line);color:#C9C2FF;}
+html[data-theme='dark'] .bai-foot textarea{background:var(--d-surface-2);border-color:var(--d-line);color:var(--d-ink);}
+html[data-theme='dark'] .bai-msg code.en{background:rgba(139,92,246,.25);color:#D9D3FF;}
+
+/* صور الكارت + الشات الخاص */
+html[data-theme='dark'] .img-up-actions .icon-btn{background:rgba(18,35,61,.92);color:var(--d-ink);}
+html[data-theme='dark'] .role-choice.current{border-color:var(--gold) !important;background:rgba(201,154,59,.16) !important;}
+html[data-theme='dark'] .support-links{border-top-color:rgba(255,255,255,.1);}

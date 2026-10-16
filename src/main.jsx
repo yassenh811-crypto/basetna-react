@@ -12,6 +12,7 @@ import './styles/dashboard.css';
 import './styles/ai.css';
 import './styles/print.css';
 import './styles/legacy.css';
+import './styles/theme-pro.css'; /* ✨ التحسينات الجديدة (لازم بعد legacy وقبل i18n والدارك) */
 import './styles/theme-i18n.css';
 import './styles/theme-dark.css'; /* لازم يكون آخر واحد */
 

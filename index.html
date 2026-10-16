@@ -6,6 +6,8 @@
     <title>بسّطنا الإنجليزي — مس. شيرهان علي</title>
     <meta name="description" content="منصة بسّطنا الإنجليزي: كورسات إنجليزي مرتبة حسب مرحلتك الدراسية، فيديوهات لكل كورس، ومتابعة مباشرة مع مس. شيرهان علي." />
     <meta name="theme-color" content="#0B1D38" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="format-detection" content="telephone=no" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="بسّطنا الإنجليزي" />
@@ -15,7 +17,7 @@
     <!-- أيقونة الموقع (SVG جاهزة، مفيش ملف خارجي) -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23C79A3D'/%3E%3Ctext x='32' y='43' font-family='Arial' font-weight='800' font-size='28' text-anchor='middle' fill='%230B1D38'%3EEN%3C/text%3E%3C/svg%3E" />
 
-    <!-- الخطوط -->
+    <!-- الخطوط: Cairo للنص و El Messiri للعناوين والأرقام -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -33,6 +35,8 @@
         r.setAttribute('data-theme', t);
         r.lang = l;
         r.dir = l === 'ar' ? 'rtl' : 'ltr';
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', t === 'dark' ? '#0A1424' : '#0B1D38');
       } catch (e) {}
     </script>
     <style>

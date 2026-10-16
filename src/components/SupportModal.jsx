@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
+import { useActingAs } from '../context/ActingAsContext';
 
 const ROLE_EMOJI = { superadmin: '👑', owner: '👩‍🏫', support: '🛠️' };
 const ROLE_LABEL = { superadmin: 'مدير', owner: 'الميس', support: 'دعم فني', student: 'طالب' };
@@ -19,6 +20,7 @@ function SupportModal() {
   const { showSupport, setShowSupport, supportType } = useUI();
   const { user } = useAuth();
   const { messages, loading, sendMessage, openRoom } = useChat();
+  const { isOwnerAccount, actingAs, actingInfo, openPicker } = useActingAs();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const endRef = useRef(null);
@@ -46,7 +48,7 @@ function SupportModal() {
     if (!input.trim() || sending) return;
     setSending(true);
     try {
-      await sendMessage(input, supportType);
+      await sendMessage(input, supportType, actingAs);
       setInput('');
     } catch (err) {
       alert('❌ حصلت مشكلة في الإرسال');
@@ -72,6 +74,13 @@ function SupportModal() {
           <h3>{info.title}</h3>
           <p>{info.sub}</p>
         </div>
+
+        {isOwnerAccount && actingInfo && (
+          <div className="private-chat-banner">
+            {actingInfo.icon} بترد بصفة: <b>{actingInfo.label}</b>
+            <button type="button" onClick={openPicker}>تغيير</button>
+          </div>
+        )}
 
         <div className="support-messages">
           {!user ? (
