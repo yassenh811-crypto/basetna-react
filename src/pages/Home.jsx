@@ -1,34 +1,25 @@
 /* ============================================================
-   🏠 Home.jsx — الصفحة الرئيسية
-   ------------------------------------------------------------
-   - Hero (قسم ترحيبي)
-   - Search (بحث)
-   - Levels (المراحل الدراسية)
-   - Packages (الباقات)
-   - كل البيانات من Supabase
+   🏠 Home.jsx — الصفحة الرئيسية (عربي / English)
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { getLevels, getPackages, getCourseCount } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useT } from '../i18n/useT';
 
 function Home() {
   const { setShowAuthModal, user } = useAuth();
+  const { t, field, lang } = useT();
   const [levels, setLevels] = useState([]);
   const [packages, setPackages] = useState([]);
   const [courseCount, setCourseCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  /* ============================================================
-     جلب البيانات من Supabase
-     ============================================================ */
   useEffect(() => {
     async function loadData() {
       try {
         const [levelsData, packagesData, count] = await Promise.all([
-          getLevels(),
-          getPackages(),
-          getCourseCount(),
+          getLevels(), getPackages(), getCourseCount(),
         ]);
         setLevels(levelsData);
         setPackages(packagesData);
@@ -42,119 +33,88 @@ function Home() {
     loadData();
   }, []);
 
-  /* ============================================================
-     فلترة الباقات حسب البحث
-     ============================================================ */
+  /* البحث بيشتغل على الاسمين (عربي وإنجليزي) */
+  const q = searchQuery.trim().toLowerCase();
   const filteredPackages = packages.filter((p) =>
-    (p.name_ar || '').toLowerCase().includes(searchQuery.toLowerCase())
+    `${p.name_ar || ''} ${p.name_en || ''}`.toLowerCase().includes(q)
   );
 
-  /* ============================================================
-     اشتراك عبر واتساب
-     ============================================================ */
   function subscribeViaWhatsApp(packageName) {
     const number = '201000000000'; /* ← غيّر الرقم ده */
-    const text = `أهلاً، أنا عايز/ة أشترك في باقة "${packageName}"`;
+    const text = t('waMsg', { name: packageName });
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank');
   }
 
+  const steps = [
+    { title: t('how1'), desc: t('how1d') },
+    { title: t('how2'), desc: t('how2d') },
+    { title: t('how3'), desc: t('how3d') },
+  ];
+
   return (
     <div id="view-public">
-
-      {/* ============================================================
-          HERO
-          ============================================================ */}
+      {/* HERO */}
       <section className="hero">
         <div className="container row">
           <div className="hero-copy">
-            <span className="eyebrow-pill">
-              منصة تعليمية بإشراف مس. شيرهان علي
-            </span>
-            <h1>الإنجليزي يبقى سهل وبسيط مع مس. شيرهان</h1>
-            <p className="lead">
-              كورسات مرتبة على حسب مرحلتك الدراسية، سلسلة فيديوهات لكل كورس،
-              ومتابعة مباشرة.
-            </p>
+            <span className="eyebrow-pill">{t('heroEyebrow')}</span>
+            <h1>{t('heroTitle')}</h1>
+            <p className="lead">{t('heroLead')}</p>
             <div className="hero-actions">
               {!user && (
-                <button
-                  className="btn btn-gold"
-                  onClick={() => setShowAuthModal(true)}
-                >
-                  تسجيل الدخول
+                <button className="btn btn-gold" onClick={() => setShowAuthModal(true)}>
+                  {t('login')}
                 </button>
               )}
-              <a className="btn btn-outline" href="#packages">
-                شوف الباقات
-              </a>
+              <a className="btn btn-outline" href="#packages">{t('seePackages')}</a>
             </div>
           </div>
 
           <div className="hero-visual">
-            <div className="lesson-note">
-              <small>Today's grammar tip</small>
-              <p>She <mark>has studied</mark> English for 3 years.</p>
-              <span className="tag">Present Perfect</span>
-              <span className="tag">has / have + V3</span>
+            {/* الجملة الإنجليزية دايماً LTR حتى في الصفحة العربية */}
+            <div className="bt-note">
+              <span className="bt-note-label">{t('tipLabel')}</span>
+              <p className="bt-sentence" dir="ltr" lang="en">
+                She <mark className="bt-mark">has studied</mark> English for 3 years.
+              </p>
+              <div className="bt-tags">
+                <span className="bt-tag" dir="ltr" lang="en">Present Perfect</span>
+                <span className="bt-tag" dir="ltr" lang="en">{t('tipRule')}</span>
+              </div>
+              <small className="bt-hint">{t('tipHint')}</small>
             </div>
-            <div className="stat-row">
-              <div className="stat">
-                <span>مراحل دراسية</span>
-                <b>{loading ? '—' : levels.length}</b>
-              </div>
-              <div className="stat">
-                <span>كورسات</span>
-                <b>{loading ? '—' : courseCount}</b>
-              </div>
-              <div className="stat">
-                <span>باقات</span>
-                <b>{loading ? '—' : packages.length}</b>
-              </div>
+
+            <div className="bt-stats">
+              <div className="bt-stat"><b>{loading ? '—' : levels.length}</b><span>{t('statLevels')}</span></div>
+              <div className="bt-stat"><b>{loading ? '—' : courseCount}</b><span>{t('statCourses')}</span></div>
+              <div className="bt-stat"><b>{loading ? '—' : packages.length}</b><span>{t('statPackages')}</span></div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ============================================================
-          SEARCH
-          ============================================================ */}
-      <section className="block" id="search-section" style={{ padding: '30px 0 0' }}>
-        <div className="container">
-          <div className="search-box">
-            <input
-              type="text"
-              placeholder="🔍 ابحث في الكورسات..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================
-          LEVELS
-          ============================================================ */}
+      {/* LEVELS */}
       <section className="block" id="levels">
         <div className="container">
           <div className="section-head">
-            <h2>المراحل الدراسية</h2>
+            <div>
+              <h2>{t('levelsTitle')}</h2>
+              <p className="section-sub">{t('levelsSub')}</p>
+            </div>
           </div>
           <div className="grid grid-4">
             {loading ? (
-              <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-                جاري التحميل...
-              </div>
+              <div className="empty-state" style={{ gridColumn: '1/-1' }}>{t('loading')}</div>
             ) : levels.length === 0 ? (
-              <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-                لسه مفيش مراحل
-              </div>
+              <div className="empty-state" style={{ gridColumn: '1/-1' }}>{t('noLevels')}</div>
             ) : (
               levels.map((lv, i) => (
                 <div className="card level-card" key={lv.id}>
                   <div className="lv-num">{i + 1}</div>
-                  <h3>{lv.name_ar}</h3>
-                  <p style={{ color: 'var(--ink-soft)', fontSize: '13px', marginTop: '6px' }}>
-                    {lv.name_en}
+                  <h3>{field(lv, 'name')}</h3>
+                  {/* الاسم باللغة التانية كعنوان فرعي */}
+                  <p className="level-alt" lang={lang === 'ar' ? 'en' : 'ar'}>
+                    {lang === 'ar' ? lv.name_en : lv.name_ar}
                   </p>
                 </div>
               ))
@@ -163,37 +123,62 @@ function Home() {
         </div>
       </section>
 
-      {/* ============================================================
-          PACKAGES
-          ============================================================ */}
+      {/* HOW IT WORKS — ترتيب خطوات حقيقي */}
+      <section className="block how" id="how">
+        <div className="container">
+          <div className="section-head"><h2>{t('howTitle')}</h2></div>
+          <div className="grid grid-3">
+            {steps.map((s, i) => (
+              <div className="card bt-step" key={i}>
+                <span className="bt-step-num">{i + 1}</span>
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PACKAGES */}
       <section className="block" id="packages" style={{ background: 'var(--paper-2)' }}>
         <div className="container">
           <div className="section-head">
-            <h2>باقات الاشتراك</h2>
+            <div>
+              <h2>{t('packagesTitle')}</h2>
+              <p className="section-sub">{t('packagesSub')}</p>
+            </div>
           </div>
+
+          <div className="search-box bt-pkg-search">
+            <input
+              type="text"
+              aria-label={t('searchPlaceholder')}
+              placeholder={t('searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
           <div className="grid grid-3">
             {loading ? (
-              <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-                جاري التحميل...
-              </div>
+              <div className="empty-state" style={{ gridColumn: '1/-1' }}>{t('loading')}</div>
             ) : filteredPackages.length === 0 ? (
               <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-                {searchQuery ? 'مفيش نتايج للبحث' : 'لسه مفيش باقات'}
+                {searchQuery ? t('noResults') : t('noPackages')}
               </div>
             ) : (
               filteredPackages.map((p) => (
                 <div className="card pkg-card" key={p.id}>
-                  <h3>{p.name_ar}</h3>
+                  <h3>{field(p, 'name')}</h3>
                   <div className="price">
-                    {p.price}{' '}
-                    <small>ج.م / {p.duration_days} يوم</small>
+                    {p.price} <small>{t('priceUnit', { days: p.duration_days })}</small>
                   </div>
-                  <p className="desc">{p.description_ar || ''}</p>
+                  <p className="desc">{field(p, 'description')}</p>
                   <button
                     className="btn btn-teal btn-block"
-                    onClick={() => subscribeViaWhatsApp(p.name_ar)}
+                    onClick={() => subscribeViaWhatsApp(field(p, 'name'))}
                   >
-                    اشترك
+                    {t('subscribe')}
                   </button>
                 </div>
               ))
@@ -201,7 +186,6 @@ function Home() {
           </div>
         </div>
       </section>
-
     </div>
   );
 }

@@ -5,11 +5,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useUI } from '../context/UIContext';
+import { useT } from '../i18n/useT';
 import CoursePlayer from '../components/CoursePlayer';
 import CourseCard from '../components/CourseCard';
 
 function StudentDashboard() {
   const { profile, signOut } = useAuth();
+  const { toggleLanguage } = useUI();
+  const { t } = useT();
   const [courses, setCourses] = useState([]);
   const [lessonCounts, setLessonCounts] = useState({});
   const [subscription, setSubscription] = useState(null);
@@ -60,7 +64,7 @@ function StudentDashboard() {
   }, [profile]);
 
   const filteredCourses = courses.filter((c) =>
-    (c.title_ar || '').toLowerCase().includes(search.toLowerCase())
+    `${c.title_ar || ''} ${c.title_en || ''}`.toLowerCase().includes(search.toLowerCase())
   );
 
   const endDate = subscription?.end_date ? new Date(subscription.end_date + 'T23:59:59') : null;
@@ -71,11 +75,14 @@ function StudentDashboard() {
     <div className="dash-shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="mark">EN</span> بسّطنا الإنجليزي
+          <span className="mark">EN</span> {t('brand')}
         </div>
         <a href="#" className="active" onClick={(e) => e.preventDefault()}>
-          📚 كورساتي
+          📚 {t('myCourses')}
         </a>
+        <div className="side-tools">
+          <button type="button" onClick={toggleLanguage}>🌐 {t('langBtn')}</button>
+        </div>
         <a
           href="#"
           onClick={(e) => {
@@ -84,35 +91,55 @@ function StudentDashboard() {
           }}
           className="logout"
         >
-          تسجيل الخروج
+          🚪 {t('logout')}
         </a>
       </aside>
 
       <main className="dash-main">
         <div className="dash-head">
           <div>
-            <h1>🎓 أهلاً بيك يا {profile?.full_name || ''}</h1>
-            <p className="dash-sub">كمّل من حيث وقفت، وكل يوم خطوة.</p>
+            <h1>🎓 {t('welcome', { name: profile?.full_name || '' })}</h1>
+            <p className="dash-sub">{t('welcomeSub')}</p>
           </div>
           <span className={`badge ${isActive ? 'active' : 'expired'}`}>
-            {isActive ? `فعّال — باقي ${daysLeft} يوم` : 'لا يوجد اشتراك'}
+            {isActive ? t('badgeActive', { days: daysLeft }) : t('badgeNone')}
           </span>
         </div>
 
         {!isActive && (
           <div className="card notice-card danger">
-            <p>⚠️ مفيش اشتراك فعّال. تواصل مع مس. شيرهان لتجديد الاشتراك.</p>
+            <p>⚠️ {t('noActiveSub')}</p>
           </div>
         )}
 
         {isActive && daysLeft <= 7 && (
           <div className="card notice-card warn">
-            <p>⏳ اشتراكك هيخلص بعد {daysLeft} يوم. تواصل مع مس. شيرهان للتجديد.</p>
+            <p>⏳ {t('endingSoon', { days: daysLeft })}</p>
+          </div>
+        )}
+
+        {isActive && (
+          <div className="kpi-row kpi-auto">
+            <div className="card kpi kpi-courses">
+              <span className="kpi-ico">📚</span>
+              <div className="num">{courses.length}</div>
+              <div className="label">{t('kpiCourses')}</div>
+            </div>
+            <div className="card kpi kpi-students">
+              <span className="kpi-ico">🎬</span>
+              <div className="num">{Object.values(lessonCounts).reduce((a, b) => a + b, 0)}</div>
+              <div className="label">{t('kpiVideos')}</div>
+            </div>
+            <div className="card kpi kpi-active">
+              <span className="kpi-ico">⏳</span>
+              <div className="num">{daysLeft}</div>
+              <div className="label">{t('kpiDays')}</div>
+            </div>
           </div>
         )}
 
         {isActive && !profile?.grade_level_id && (
-          <div className="empty-state">محتاج تحدد مرحلتك الدراسية. تواصل مع الدعم.</div>
+          <div className="empty-state">{t('needGrade')}</div>
         )}
 
         {isActive && profile?.grade_level_id && (
@@ -120,7 +147,8 @@ function StudentDashboard() {
             <div className="search-box student-search">
               <input
                 type="text"
-                placeholder="🔍 ابحث في كورساتك..."
+                placeholder={t('searchCourses')}
+                aria-label={t('searchCourses')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -138,7 +166,7 @@ function StudentDashboard() {
               </div>
             ) : filteredCourses.length === 0 ? (
               <div className="empty-state">
-                {search ? 'مفيش نتايج للبحث' : 'لسه مفيش كورسات لمرحلتك'}
+                {search ? t('noResults') : t('noCourses')}
               </div>
             ) : (
               <div className="grid grid-3">

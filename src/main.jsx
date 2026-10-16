@@ -11,6 +11,7 @@ import './styles/ai.css';
 import './styles/print.css';
 import App from './App.jsx';
 import './styles/legacy.css';
+import './styles/theme-i18n.css'; // لازم يكون آخر استيراد
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
