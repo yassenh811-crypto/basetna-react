@@ -53,7 +53,7 @@ function VideoError({ text }) {
 }
 
 /* ---------- Component ---------- */
-function CoursePlayer({ course, onClose }) {
+function CoursePlayer({ course, onClose, preview = false }) {
   const { profile } = useAuth();
 
   const [lessons, setLessons] = useState([]);
@@ -169,7 +169,7 @@ function CoursePlayer({ course, onClose }) {
   async function playLesson(lesson) {
     setActiveLesson(lesson);
     setShowQuiz(false);
-    if (lesson.is_intro || !profile) return;
+    if (lesson.is_intro || !profile || preview) return;
 
     await supabase
       .from('lesson_progress')
@@ -286,6 +286,7 @@ function CoursePlayer({ course, onClose }) {
     <div className={`overlay open${theater ? ' has-theater' : ''}`} onClick={onClose}>
       <div className="course-player-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <button className="close" onClick={onClose} aria-label="إغلاق">✕</button>
+        {preview && <div className="preview-banner">👁️ وضع المعاينة — مش بيتسجل ليك تقدم ولا تقييم</div>}
 
         <div ref={wrapRef} className={`video-wrapper${theater ? ' theater' : ''}`}>
           <div id="video-player">{renderVideo()}</div>
@@ -368,7 +369,7 @@ function CoursePlayer({ course, onClose }) {
           </div>
         )}
 
-        <div className="course-rating-section">
+        <div className="course-rating-section" hidden={preview}>
           <h3>قيّم الكورس</h3>
           <div className="rating-stars">
             {[1, 2, 3, 4, 5].map((n) => (
@@ -378,7 +379,7 @@ function CoursePlayer({ course, onClose }) {
           {myRating && <p className="rating-thanks">شكراً لتقييمك 💛</p>}
         </div>
 
-        {profile && activeLesson && !activeLesson.is_intro && (
+        {!preview && profile && activeLesson && !activeLesson.is_intro && (
           <div className="quiz-cta">
             <button className="btn btn-teal btn-block" onClick={() => setShowQuiz(true)}>🎓 ابدأ امتحان الدرس</button>
           </div>

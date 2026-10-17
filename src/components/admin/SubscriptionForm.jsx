@@ -56,11 +56,15 @@ function SubscriptionForm({ student, onClose }) {
       return;
     }
     async function loadPackages() {
-      const { data } = await supabase
+      let { data, error } = await supabase
         .from('packages')
         .select('*')
-        .eq('grade_level_id', levelId)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .or(`grade_level_id.eq.${levelId},grade_level_ids.cs.{${levelId}}`);
+      if (error) {
+        /* لسه ماشغلتش coupons.sql: ارجع للطريقة القديمة */
+        ({ data } = await supabase.from('packages').select('*').eq('grade_level_id', levelId).eq('is_active', true));
+      }
       setPackages(data || []);
       setPackageId(data?.[0]?.id || '');
     }
@@ -152,7 +156,7 @@ function SubscriptionForm({ student, onClose }) {
             ) : (
               <select value={packageId} onChange={(e) => setPackageId(e.target.value)} required>
                 {packages.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name_ar} — {p.price} ج.م / {p.duration_days} يوم</option>
+                  <option key={p.id} value={p.id}>{p.coupon_required ? '🎟️ ' : ''}{p.name_ar} — {p.price} ج.م / {p.duration_days} يوم</option>
                 ))}
               </select>
             )}

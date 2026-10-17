@@ -6,6 +6,7 @@ import { supabase } from '../../services/supabase';
 import { getCourseCover } from '../../utils/courseCover';
 import AdminFormModal from './AdminFormModal';
 import LessonsManager from './LessonsManager';
+import CoursePlayer from '../CoursePlayer';
 import ImageUploader from './ImageUploader';
 import { AdminToolbar, StateRow, RowActions } from './AdminUI';
 
@@ -43,6 +44,7 @@ function AdminCourses() {
   const [editing, setEditing] = useState(null);
   const [msg, setMsg] = useState('');
   const [lessonsCourse, setLessonsCourse] = useState(null);
+  const [watchCourse, setWatchCourse] = useState(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
 
@@ -207,6 +209,9 @@ function AdminCourses() {
                     </td>
                     <td data-label="إجراءات">
                       <RowActions>
+                        <button className="icon-btn watch" onClick={() => setWatchCourse(c)}>
+                          ▶️ مشاهدة
+                        </button>
                         <button className="icon-btn primary" onClick={() => setLessonsCourse(c)}>
                           🎬 الفيديوهات
                         </button>
@@ -293,6 +298,8 @@ function AdminCourses() {
 
         {msg && <div className="form-msg error">{msg}</div>}
       </AdminFormModal>
+
+      {watchCourse && <CoursePlayer course={watchCourse} preview onClose={() => setWatchCourse(null)} />}
 
       {lessonsCourse && (
         <LessonsManager
