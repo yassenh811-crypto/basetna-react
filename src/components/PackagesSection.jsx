@@ -17,6 +17,7 @@ function PackagesSection() {
   const [whatsapp, setWhatsapp] = useState('');
   const [loading, setLoading] = useState(true);
   const [levelFilter, setLevelFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const coupon = useCouponPackages();
 
   useEffect(() => {
@@ -41,8 +42,10 @@ function PackagesSection() {
     [...coupon.unlocked, ...packages].forEach((p) => map.set(String(p.id), p));
     let list = [...map.values()];
     if (levelFilter !== 'all') list = list.filter((p) => packageLevelIds(p).includes(levelFilter));
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter((p) => `${p.name_ar || ''} ${p.name_en || ''} ${p.description_ar || ''}`.toLowerCase().includes(q));
     return list;
-  }, [packages, coupon.unlocked, levelFilter]);
+  }, [packages, coupon.unlocked, levelFilter, search]);
 
   const levelName = (id) => levels.find((l) => String(l.id) === String(id))?.name_ar;
 
@@ -57,10 +60,19 @@ function PackagesSection() {
       <div className="container">
         <div className="section-head">
           <h2>الباقات</h2>
-          <p>اختار الباقة المناسبة لمرحلتك</p>
+          <p>اشتراك واحد بيفتحلك كل كورسات مرحلتك.</p>
         </div>
 
         <CouponBox coupon={coupon} />
+
+        <div className="search-box pkg-search">
+          <input
+            type="text"
+            placeholder="🔍 ابحث عن باقة..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
         {levels.length > 1 && (
           <div className="level-tabs" role="tablist">

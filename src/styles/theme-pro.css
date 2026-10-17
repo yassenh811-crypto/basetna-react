@@ -1027,3 +1027,5 @@ html[data-theme='dark'] .coupon-box label{color:var(--d-ink);}
 html[data-theme='dark'] .coupon-box .coupon-row input{background:var(--d-surface-2);border-color:var(--d-line);color:var(--d-ink);}
 html[data-theme='dark'] .coupon-active{background:rgba(43,127,108,.22);color:#7BE0C3;}
 html[data-theme='dark'] .coupon-active button{background:var(--d-surface);border-color:var(--d-line);color:var(--d-ink);}
+
+.pkg-search{max-width:560px;margin:0 auto 20px;}
