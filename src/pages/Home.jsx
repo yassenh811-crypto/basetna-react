@@ -14,6 +14,7 @@ import { useT } from '../i18n/useT';
 import { packageLevelIds } from '../utils/packages';
 import { useCouponPackages } from '../hooks/useCouponPackages';
 import CouponBox from '../components/CouponBox';
+import DemoVideo from '../components/DemoVideo';
 
 /* الباقات العامة (من غير الباقات المخفية بكوبون) */
 async function loadPublicPackages() {
@@ -65,6 +66,7 @@ function Home() {
   const [packages, setPackages] = useState([]);
   const [courseCount, setCourseCount] = useState(0);
   const [whatsapp, setWhatsapp] = useState('');
+  const [demo, setDemo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
@@ -77,12 +79,18 @@ function Home() {
           getLevels(),
           loadPublicPackages(),
           getCourseCount(),
-          supabase.from('settings').select('whatsapp_number').eq('id', 1).maybeSingle(),
+          supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
         ]);
         setLevels(levelsData);
         setPackages(packagesData);
         setCourseCount(count);
         setWhatsapp(settingsRes?.data?.whatsapp_number || '');
+        const s = settingsRes?.data;
+        setDemo(
+          s?.demo_video_url
+            ? { url: s.demo_video_url, type: s.demo_video_type || 'youtube', title: s.demo_video_title || '', cover: s.demo_video_cover || '' }
+            : null
+        );
       } catch (err) {
         console.error('❌ خطأ في جلب البيانات:', err);
       } finally {
@@ -173,6 +181,9 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {/* فيديو تجريبي (بيظهر لو الأدمن حط رابط) */}
+      {demo && <DemoVideo demo={demo} lang={lang} />}
 
       {/* LEVELS */}
       <section className="block" id="levels">
