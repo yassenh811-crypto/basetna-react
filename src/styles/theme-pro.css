@@ -937,3 +937,37 @@ html[data-theme='dark'] .bai-msg code.en{background:rgba(139,92,246,.25);color:#
 html[data-theme='dark'] .img-up-actions .icon-btn{background:rgba(18,35,61,.92);color:var(--d-ink);}
 html[data-theme='dark'] .role-choice.current{border-color:var(--gold) !important;background:rgba(201,154,59,.16) !important;}
 html[data-theme='dark'] .support-links{border-top-color:rgba(255,255,255,.1);}
+
+/* ============================================================
+   🔒 منع سكرول الخلفية لما أي نافذة تفتح + شيل العين المكررة
+   ============================================================ */
+html:has(.overlay.open),
+html:has(.bai-overlay.open),
+body:has(.overlay.open),
+body:has(.bai-overlay.open){overflow:hidden;}
+.overlay{overflow-y:auto;overscroll-behavior:contain;}
+.modal,.support-modal,.bai-panel,.course-player-modal{overscroll-behavior:contain;}
+/* عين إظهار الباسورد بتاعة المتصفح (Edge/IE) — سيبنا عينتنا بس */
+input::-ms-reveal,input::-ms-clear{display:none;}
+
+/* ============================================================
+   💬 صندوق الدعم والشات
+   ============================================================ */
+.thread-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--paper-2);border-bottom:1px solid var(--line);}
+.thread-bar button{background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 12px;font-family:var(--font);font-size:12.5px;font-weight:700;color:var(--navy-deep);cursor:pointer;}
+.thread-bar button:hover{background:var(--line);}
+.thread-bar b{color:var(--navy-deep);font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.guest-name-row{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#FFFBF0;border-bottom:1px solid var(--line);}
+.guest-name-row label{font-size:12.5px;font-weight:700;color:var(--navy-deep);white-space:nowrap;}
+.guest-name-row input{flex:1;min-width:0;padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;background:#fff;}
+.waiting-tag{display:inline-block;margin-inline-start:8px;background:#D98B2B;color:#fff;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:8px;}
+.chat-preview{display:inline-block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;}
+.support-messages .chat-contact{margin-bottom:0;}
+html[data-theme='dark'] .thread-bar{background:var(--d-surface-2);border-color:var(--d-line);}
+html[data-theme='dark'] .thread-bar button{background:var(--d-surface);border-color:var(--d-line);color:var(--d-ink);}
+html[data-theme='dark'] .thread-bar b{color:var(--d-ink);}
+html[data-theme='dark'] .guest-name-row{background:rgba(201,154,59,.12);border-color:var(--d-line);}
+html[data-theme='dark'] .guest-name-row label{color:var(--d-ink);}
+html[data-theme='dark'] .guest-name-row input{background:var(--d-surface-2);border-color:var(--d-line);color:var(--d-ink);}
+html[data-theme='dark'] .chat-contact{background:var(--d-surface) !important;border-color:var(--d-line) !important;}
+html[data-theme='dark'] .chat-contact-name{color:var(--d-ink);}

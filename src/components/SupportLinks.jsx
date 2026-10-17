@@ -7,18 +7,21 @@ import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 import { useAIChat } from '../context/AIChatContext';
 import { useActingAs } from '../context/ActingAsContext';
+import { isStaffFor } from '../context/ChatContext';
 
 function SupportLinks() {
   const { openSupport } = useUI();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { setIsOpen: setAIOpen } = useAIChat();
   const { isOwnerAccount, actingInfo, openPicker } = useActingAs();
 
   const items = [
     ...(user ? [{ id: 'ai', icon: '🤖', text: 'مساعد ذكي', run: () => setAIOpen(true) }] : []),
-    { id: 'general', icon: '💬', text: 'الغرفة العامة', run: () => openSupport('general') },
-    { id: 'owner', icon: '👩‍🏫', text: 'مس. شيرهان', run: () => openSupport('owner') },
-    { id: 'support', icon: '🛠️', text: 'الدعم الفني', run: () => openSupport('support') },
+    ...(user
+      ? [{ id: 'general', icon: '💬', text: isStaffFor('general', profile?.role) ? 'دردشات المراحل' : 'دردشة مرحلتي', run: () => openSupport('general') }]
+      : []),
+    { id: 'owner', icon: '👩‍🏫', text: isStaffFor('owner', profile?.role) ? 'رسائل الميس' : 'مس. شيرهان', run: () => openSupport('owner') },
+    { id: 'support', icon: '🛠️', text: isStaffFor('support', profile?.role) ? 'صندوق الدعم' : 'الدعم الفني', run: () => openSupport('support') },
     ...(isOwnerAccount
       ? [{ id: 'acting', icon: '🎭', text: `أرد بصفة: ${actingInfo?.label || ''}`, run: openPicker }]
       : []),
