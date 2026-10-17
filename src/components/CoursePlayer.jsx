@@ -249,6 +249,7 @@ function CoursePlayer({ course, onClose, preview = false }) {
             title={activeLesson.title_ar}
             src={`https://drive.google.com/file/d/${driveId}/preview`}
             allow="autoplay"
+            sandbox="allow-scripts allow-same-origin"
           />
           {/* دروع بتغطي زرار فتح الفيديو في درايف وزرار التكبير بتاعه */}
           <div className="drive-shield shield-top" aria-hidden="true" onContextMenu={noMenu} />

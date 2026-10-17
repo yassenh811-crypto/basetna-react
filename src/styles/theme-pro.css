@@ -1072,3 +1072,16 @@ html[dir="rtl"] .demo-play svg{transform:none;}
   .demo-modal{border-radius:0;}
   .demo-badge{top:10px;inset-inline-start:10px;font-size:12px;}
 }
+
+/* ============================================================
+   🛡️ إصلاح دروع درايف (الدرع السفلي كان طالع فوق بالغلط)
+   ============================================================ */
+.drive-shield{pointer-events:auto;}
+.shield-top{top:0;bottom:auto;width:120px;height:100px;}
+.shield-bottom{top:auto;bottom:0;width:130px;height:110px;}
+
+/* الفيديو التجريبي: تكبير جوه الموقع */
+.demo-frame.theater{position:fixed;inset:0;z-index:400;width:100vw;height:100vh;aspect-ratio:auto;}
+.demo-frame:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;background:#000;}
+.demo-frame:fullscreen .drive-shield,.demo-frame.theater .drive-shield{width:150px;}
+.overlay.has-theater .demo-modal{transform:none;animation:none;}
