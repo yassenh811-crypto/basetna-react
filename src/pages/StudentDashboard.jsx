@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext';
 import CoursePlayer from '../components/CoursePlayer';
 import CourseCard from '../components/CourseCard';
 import SupportLinks from '../components/SupportLinks';
+import DailyChallenge from '../components/DailyChallenge';
+import Leaderboard from '../components/Leaderboard';
 
 function StudentDashboard() {
   const { profile, signOut } = useAuth();
@@ -17,6 +19,8 @@ function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [playerCourse, setPlayerCourse] = useState(null);
+  const [tab, setTab] = useState('courses'); /* courses | challenge */
+  const [boardKey, setBoardKey] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -74,8 +78,19 @@ function StudentDashboard() {
         <div className="brand">
           <span className="mark">EN</span> بسّطنا الإنجليزي
         </div>
-        <a href="#" className="active" onClick={(e) => e.preventDefault()}>
+        <a
+          href="#"
+          className={tab === 'courses' ? 'active' : ''}
+          onClick={(e) => { e.preventDefault(); setTab('courses'); }}
+        >
           📚 كورساتي
+        </a>
+        <a
+          href="#"
+          className={tab === 'challenge' ? 'active' : ''}
+          onClick={(e) => { e.preventDefault(); setTab('challenge'); }}
+        >
+          🏆 التحدي اليومي
         </a>
 
         <SupportLinks />
@@ -118,8 +133,13 @@ function StudentDashboard() {
           <div className="empty-state">محتاج تحدد مرحلتك الدراسية. تواصل مع الدعم.</div>
         )}
 
-        {isActive && profile?.grade_level_id && (
+        {tab === 'courses' && isActive && profile?.grade_level_id && (
           <>
+            <button type="button" className="dc-banner" onClick={() => setTab('challenge')}>
+              <span>🔥 تحدي اليوم جاهز — جاوب وكمّل الستريك</span>
+              <b>‹</b>
+            </button>
+
             <div className="search-box student-search">
               <input
                 type="text"
@@ -156,6 +176,17 @@ function StudentDashboard() {
               </div>
             )}
           </>
+        )}
+
+        {tab === 'challenge' && isActive && (
+          profile?.grade_level_id ? (
+            <div className="dc-layout">
+              <DailyChallenge onAnswered={() => setBoardKey((k) => k + 1)} />
+              <Leaderboard refreshKey={boardKey} />
+            </div>
+          ) : (
+            <div className="empty-state">محتاج تحدد مرحلتك الدراسية. تواصل مع الدعم.</div>
+          )
         )}
       </main>
 
