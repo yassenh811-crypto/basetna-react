@@ -1,22 +1,35 @@
 /* ============================================================
    👑 AdminDashboard — لوحة تحكم الأدمن (عربي / English)
+   ------------------------------------------------------------
+   جديد:
+   - 💬 الدعم والمحادثات: الأونر يكلّم أي طالب (مع عدّاد رسايل جديدة)
+   - 👥 الجروب العام: كل الحسابات في مكان واحد
+   باقي التابات زي ما هي بالظبط.
    ============================================================ */
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import { useT } from '../i18n/useT';
+import { chatLabels } from '../i18n/chatLabels';
+import { useUnreadSupport } from '../hooks/useUnreadSupport';
 import AdminOverview from '../components/admin/AdminOverview';
 import AdminLevels from '../components/admin/AdminLevels';
 import AdminCourses from '../components/admin/AdminCourses';
 import AdminPackages from '../components/admin/AdminPackages';
 import AdminStudents from '../components/admin/AdminStudents';
+import AdminSupport from '../components/admin/AdminSupport';
+import AdminGroup from '../components/admin/AdminGroup';
 import AdminSettings from '../components/admin/AdminSettings';
 
 function AdminDashboard() {
   const { profile, signOut } = useAuth();
   const { toggleLanguage } = useUI();
-  const { t } = useT();
+  const { t, lang } = useT();
+  const C = chatLabels(lang);
   const [tab, setTab] = useState('overview');
+
+  /* رسايل الطلاب اللي لسه ماتقرتش */
+  const { count: unread } = useUnreadSupport('student');
 
   const tabs = [
     { id: 'overview', icon: '📊', label: t('tabOverview') },
@@ -24,6 +37,8 @@ function AdminDashboard() {
     { id: 'courses', icon: '🎬', label: t('tabCourses') },
     { id: 'packages', icon: '🎁', label: t('tabPackages') },
     { id: 'students', icon: '👩‍🎓', label: t('tabStudents') },
+    { id: 'support', icon: '💬', label: C.tabSupport, badge: unread },
+    { id: 'group', icon: '👥', label: C.tabGroup },
     { id: 'settings', icon: '⚙️', label: t('tabSettings') },
   ];
 
@@ -41,6 +56,11 @@ function AdminDashboard() {
             onClick={(e) => { e.preventDefault(); setTab(x.id); }}
           >
             <span aria-hidden="true">{x.icon}</span> {x.label}
+            {x.badge > 0 && (
+              <b className="nav-badge" aria-label={C.unreadN(x.badge)}>
+                {x.badge > 99 ? '99+' : x.badge}
+              </b>
+            )}
           </a>
         ))}
 
@@ -59,6 +79,8 @@ function AdminDashboard() {
         {tab === 'courses' && <AdminCourses />}
         {tab === 'packages' && <AdminPackages />}
         {tab === 'students' && <AdminStudents />}
+        {tab === 'support' && <AdminSupport />}
+        {tab === 'group' && <AdminGroup />}
         {tab === 'settings' && <AdminSettings />}
       </main>
     </div>
