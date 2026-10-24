@@ -1153,3 +1153,13 @@ html[data-theme='dark'] .dc-result.bad{background:rgba(233,164,59,.18);color:#FF
 html[data-theme='dark'] .lb-tabs button{background:var(--d-surface) !important;border-color:var(--d-line) !important;color:var(--d-ink);}
 html[data-theme='dark'] .lb-tabs button.active{background:var(--gold) !important;border-color:var(--gold) !important;color:#0A1424;}
 html[data-theme='dark'] .dq-opt input[type="text"]{background:var(--d-surface-2);border-color:var(--d-line);color:var(--d-ink);}
+
+/* ---------- أدوات السايد بار (اللغة + المظهر) ---------- */
+.side-tools{display:flex;gap:8px;margin-top:14px;}
+.side-tools button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#E6EDF7;font-family:var(--font);font-weight:700;font-size:14px;cursor:pointer;transition:background .15s ease;}
+.side-tools button:hover{background:rgba(255,255,255,.12);}
+.side-tools button + button{flex:0 0 48px;}
+@media (max-width:860px){
+  .side-tools{margin-top:0;flex-shrink:0;}
+  .side-tools button{padding:8px 12px;font-size:13px;white-space:nowrap;}
+}
