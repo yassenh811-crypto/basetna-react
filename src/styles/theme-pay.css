@@ -105,3 +105,43 @@
   .bc-req-actions{grid-column:1 / -1;grid-template-columns:1fr 1fr;}
   .bc-acc{flex-direction:column;align-items:stretch;}
 }
+/* ============================================================
+   إصلاح أزرار الفلتر (الكل، مرفوض، اتفق، قيد المراجعة)
+   ============================================================ */
+.bc-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.bc-chips button {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  color: var(--ink-soft);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.bc-chips button:hover {
+  border-color: var(--gold);
+  color: var(--heading);
+}
+.bc-chips button.on {
+  background: var(--navy-deep);
+  border-color: var(--navy-deep);
+  color: #fff;
+}
+html[data-theme='dark'] .bc-chips button {
+  background: var(--d-surface-2);
+  border-color: var(--d-line);
+  color: var(--d-ink);
+}
+html[data-theme='dark'] .bc-chips button.on {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #0B1D38;
+}
