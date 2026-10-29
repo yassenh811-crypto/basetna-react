@@ -108,40 +108,62 @@
 /* ============================================================
    إصلاح أزرار الفلتر (الكل، مرفوض، اتفق، قيد المراجعة)
    ============================================================ */
+
+/* الحاوية اللي شايلة الأزرار */
 .bc-chips {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+  padding: 8px 0;
 }
+
+/* شكل الزرار الأساسي (غير مختار) */
 .bc-chips button {
-  background: var(--surface);
-  border: 1.5px solid var(--line);
-  color: var(--ink-soft);
+  background: var(--surface, #fff);
+  border: 1.5px solid var(--line, #E3D9C2);
+  color: var(--ink-soft, #5A6477);
   padding: 8px 16px;
-  border-radius: 12px;
-  font-family: var(--font);
+  border-radius: 10px; /* شكل مربع بحواف دائرية */
+  font-family: var(--font, 'Cairo', sans-serif);
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
+
+/* تأثير لما تقف بالماوس */
 .bc-chips button:hover {
-  border-color: var(--gold);
-  color: var(--heading);
+  border-color: var(--gold, #C99A3B);
+  color: var(--navy-deep, #091A33);
+  background: var(--paper, #F7F3EA);
 }
+
+/* الزرار المختار (Active) */
+.bc-chips button.active,
 .bc-chips button.on {
-  background: var(--navy-deep);
-  border-color: var(--navy-deep);
+  background: var(--navy-deep, #091A33);
+  border-color: var(--navy-deep, #091A33);
   color: #fff;
+  box-shadow: 0 4px 10px rgba(9, 26, 51, 0.2);
 }
+
+/* الوضع الليلي (Dark Mode) */
 html[data-theme='dark'] .bc-chips button {
-  background: var(--d-surface-2);
-  border-color: var(--d-line);
-  color: var(--d-ink);
+  background: var(--d-surface, #12233B);
+  border-color: var(--d-line, #27405F);
+  color: var(--d-ink, #E6EDF7);
 }
+
+html[data-theme='dark'] .bc-chips button:hover {
+  border-color: var(--gold, #D4A84B);
+  background: var(--d-surface-2, #1A2D4B);
+}
+
+html[data-theme='dark'] .bc-chips button.active,
 html[data-theme='dark'] .bc-chips button.on {
-  background: var(--gold);
-  border-color: var(--gold);
+  background: var(--gold, #D4A84B);
+  border-color: var(--gold, #D4A84B);
   color: #0B1D38;
 }
