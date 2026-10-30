@@ -1221,3 +1221,24 @@ html[data-theme='dark'] .pay-step-title{color:var(--d-ink);}
 html[data-theme='dark'] .pay-number{background:var(--d-surface-2);}
 html[data-theme='dark'] .pay-note{background:rgba(255,255,255,.06);color:var(--gold-soft);}
 html[data-theme='dark'] .badge.pending{background:rgba(233,164,59,.22);color:#FFD08A;}
+/* إصلاح لون النص في الشريط العلوي/التوجيه (Breadcrumbs/Sub-header) */
+.breadcrumbs,
+.track-strip,
+.sub-header,
+.page-header {
+  color: #E6EDF7 !important; /* لون فاتح */
+}
+
+/* لو النص جوه لينك */
+.breadcrumbs a,
+.page-header a {
+  color: #EBD29A !important; /* لون ذهبي فاتح */
+}
+
+/* لو ده جوه الهيرو أو خلفية غامقة */
+.hero .breadcrumbs,
+.hero .track-strip,
+[data-theme='dark'] .breadcrumbs,
+[data-theme='dark'] .track-strip {
+  color: #FFFFFF !important;
+}
