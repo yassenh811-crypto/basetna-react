@@ -1,56 +1,68 @@
 /* ============================================================
-   🧭 Navbar — شريط التنقل
+   🧭 Navbar — الهيدر الجديد (شريط علوي + لوجو + روابط + أزرار)
    ============================================================ */
-import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
+import { useT } from '../i18n/useT';
 
 function Navbar() {
   const { user, profile, setShowAuthModal, signOut } = useAuth();
   const { lang, toggleLanguage, theme, toggleTheme } = useUI();
-  const [logoOk, setLogoOk] = useState(true);
+  const { t } = useT();
+
+  const name = lang === 'en' ? 'Basetna English' : 'بسّطنا الإنجليزي';
+  const links = [
+    ['#top', lang === 'en' ? 'Home' : 'الرئيسية'],
+    ['#levels', t('levelsTitle')],
+    ['#how', t('howTitle')],
+    ['#packages', t('packagesTitle')],
+  ];
 
   return (
-    <header className="topbar">
-      <div className="row">
-        <div className="brand">
-          {logoOk ? (
-            <img
-              className="brand-logo"
-              src="/logo.png"
-              alt=""
-              onError={() => setLogoOk(false)}
-            />
-          ) : (
+    <>
+      <div className="topline">{t('packagesSub')}</div>
+
+      <header className="topbar">
+        <div className="row">
+          <a className="brand" href="#top" aria-label={name}>
             <span className="mark">EN</span>
-          )}
-          <span className="brand-name">بسّطنا الإنجليزي</span>
-        </div>
+            <span className="brand-text">
+              <b>{name}</b>
+              <small>LEARN. PRACTICE. SPEAK.</small>
+            </span>
+          </a>
 
-        <div className="topbar-actions">
-          <button type="button" className="lang-switch" onClick={toggleTheme} title="تغيير المظهر" aria-label="تغيير المظهر">
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
+          <nav className="nav" aria-label={lang === 'en' ? 'Main navigation' : 'التنقل الرئيسي'}>
+            {links.map(([href, label]) => (
+              <a key={href} href={href}>{label}</a>
+            ))}
+          </nav>
 
-          <button type="button" className="lang-switch" onClick={toggleLanguage}>
-            {lang === 'ar' ? 'English' : 'العربية'}
-          </button>
-
-          {user ? (
-            <>
-              <span className="nav-user">👋 {profile?.full_name || 'مرحباً'}</span>
-              <button type="button" className="btn btn-gold btn-sm" onClick={signOut}>
-                تسجيل الخروج
-              </button>
-            </>
-          ) : (
-            <button type="button" className="btn btn-gold btn-sm" onClick={() => setShowAuthModal(true)}>
-              تسجيل الدخول
+          <div className="topbar-actions">
+            <button type="button" className="lang-switch" onClick={toggleTheme} title="تغيير المظهر" aria-label="تغيير المظهر">
+              {theme === 'light' ? '🌙' : '☀️'}
             </button>
-          )}
+
+            <button type="button" className="lang-switch" onClick={toggleLanguage}>
+              {lang === 'ar' ? 'English' : 'العربية'}
+            </button>
+
+            {user ? (
+              <>
+                <span className="nav-user">👋 {profile?.full_name || ''}</span>
+                <button type="button" className="btn btn-gold btn-sm" onClick={signOut}>
+                  {lang === 'en' ? 'Sign out' : 'تسجيل الخروج'}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="btn btn-gold btn-sm" onClick={() => setShowAuthModal(true)}>
+                {t('login')}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 
