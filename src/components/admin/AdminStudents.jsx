@@ -1,18 +1,11 @@
 /* ============================================================
    👥 AdminStudents — إدارة الطلاب
-   ------------------------------------------------------------
-   - الحسابات الجديدة بتتعمل من الموقع (اشتراك بالتحويل)
-   - إضافة وحذف طالب: للمدير الأعلى بس
-   - الميس: تشوف الطلاب وتعدّل بياناتهم وتفعّل الاشتراك
-            وتقفل/تفتح الحساب وتشوف صور التحويل
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../services/supabase';
-import { useAuth } from '../../context/AuthContext';
 import AdminFormModal from './AdminFormModal';
 import SubscriptionForm from './SubscriptionForm';
-import StudentReceipts from './StudentReceipts';
 import { AdminToolbar, StateRow, RowActions } from './AdminUI';
 
 const SUPABASE_URL =
@@ -32,9 +25,6 @@ const EMPTY = {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 function AdminStudents() {
-  const { profile: me } = useAuth();
-  const isSuper = me?.role === 'superadmin';
-
   const [students, setStudents] = useState([]);
   const [levels, setLevels] = useState([]);
   const [subs, setSubs] = useState({});
@@ -44,7 +34,6 @@ function AdminStudents() {
   const [editing, setEditing] = useState(null);
   const [msg, setMsg] = useState({ text: '', type: '' });
   const [subscriptionStudent, setSubscriptionStudent] = useState(null);
-  const [receiptsStudent, setReceiptsStudent] = useState(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(EMPTY);
 
@@ -112,13 +101,16 @@ function AdminStudents() {
     setMsg({ text: '', type: '' });
 
     if (!editing) {
-      if (!isSuper) return fail('إضافة الطلاب للمدير الأعلى بس');
       if (!form.full_name.trim()) return fail('اكتب اسم الطالب');
       if (!form.email.trim()) return fail('اكتب الإيميل');
       if (!form.password || form.password.length < 6) return fail('كلمة المرور 6+ حروف');
 
       const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false, storageKey: 'temp-signup-' + Date.now() },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          storageKey: 'temp-signup-' + Date.now(),
+        },
       });
 
       const { data: authData, error: authError } = await tempClient.auth.signUp({
@@ -152,9 +144,8 @@ function AdminStudents() {
       full_name: form.full_name.trim(),
       phone: form.phone.trim() || null,
       grade_level_id: form.grade_level_id || null,
+      role: form.role || 'student',
     };
-    if (isSuper) payload.role = form.role || 'student'; /* الدور للمدير الأعلى بس */
-
     const { error } = await supabase.from('profiles').update(payload).eq('id', editing.id);
     if (error) return fail(error.message);
 
@@ -177,27 +168,7 @@ function AdminStudents() {
     await loadData();
   }
 
-  async function toggleBlocked(student) {
-    const next = !student.is_blocked;
-    const ok = confirm(
-      next
-        ? `قفل حساب "${student.full_name}"؟ مش هيقدر يشوف الكورسات لحد ما تفتحه تاني.`
-        : `فتح حساب "${student.full_name}"؟`
-    );
-    if (!ok) return;
-    const { error } = await supabase.rpc('set_account_blocked', { p_user: student.id, p_blocked: next });
-    if (error) {
-      alert(
-        /set_account_blocked|function|schema cache/i.test(error.message || '')
-          ? '❌ لازم تشغّل ملف payments.sql في Supabase مرة واحدة الأول'
-          : '❌ ' + error.message
-      );
-      return;
-    }
-    setStudents((list) => list.map((s) => (s.id === student.id ? { ...s, is_blocked: next } : s)));
-  }
-
-  const levelName = (id) => levels.find((l) => String(l.id) === String(id))?.name_ar || '—';
+  const levelName = (id) => levels.find((l) => l.id === id)?.name_ar || '—';
 
   const q = search.toLowerCase();
   const filtered = students.filter(
@@ -216,7 +187,7 @@ function AdminStudents() {
         onSearch={setSearch}
         placeholder="ابحث بالاسم أو الهاتف..."
         addLabel="إضافة طالب"
-        onAdd={isSuper ? openAddModal : undefined}
+        onAdd={openAddModal}
       />
 
       <div className="table-wrap stack">
@@ -227,18 +198,17 @@ function AdminStudents() {
               <th>الهاتف</th>
               <th>المرحلة</th>
               <th>الاشتراك</th>
-              <th>الحساب</th>
               <th>إجراءات</th>
             </tr>
           </thead>
           <tbody>
-            <StateRow colSpan={6} loading={loading} />
-            <StateRow colSpan={6} empty={!loading && filtered.length === 0} text={search ? 'مفيش نتايج' : 'لسه مفيش طلاب'} />
+            <StateRow colSpan={5} loading={loading} />
+            <StateRow colSpan={5} empty={!loading && filtered.length === 0} text={search ? 'مفيش نتايج' : 'لسه مفيش طلاب'} />
             {!loading &&
               filtered.map((s) => {
                 const st = subState(s.id);
                 return (
-                  <tr key={s.id} className={s.is_blocked ? 'row-blocked' : ''}>
+                  <tr key={s.id}>
                     <td data-label="الاسم">
                       <div className="cell-course">
                         <span className="avatar-dot">{(s.full_name || '?').trim().charAt(0)}</span>
@@ -248,24 +218,11 @@ function AdminStudents() {
                     <td data-label="الهاتف" dir="ltr" className="num-cell">{s.phone || '—'}</td>
                     <td data-label="المرحلة"><span className="level-chip">{levelName(s.grade_level_id)}</span></td>
                     <td data-label="الاشتراك"><span className={`badge ${st.cls}`}>{st.text}</span></td>
-                    <td data-label="الحساب">
-                      <span className={`badge ${s.is_blocked ? 'expired' : 'active'}`}>{s.is_blocked ? '🔒 مقفول' : 'مفتوح'}</span>
-                    </td>
                     <td data-label="إجراءات">
                       <RowActions>
                         <button className="icon-btn primary" onClick={() => setSubscriptionStudent(s)}>💳 الاشتراك</button>
-                        <button className="icon-btn" onClick={() => setReceiptsStudent(s)} title="صور التحويل" aria-label="صور التحويل">🧾 <span className="only-mobile">التحويلات</span></button>
-                        <button
-                          className={`icon-btn${s.is_blocked ? '' : ' danger'}`}
-                          onClick={() => toggleBlocked(s)}
-                          title={s.is_blocked ? 'فتح الحساب' : 'قفل الحساب'}
-                        >
-                          {s.is_blocked ? '🔓 فتح' : '🔒 قفل'}
-                        </button>
-                        <button className="icon-btn" onClick={() => openEditModal(s)} aria-label="تعديل">✏️ <span className="only-mobile">تعديل</span></button>
-                        {isSuper && (
-                          <button className="icon-btn danger" onClick={() => handleDelete(s)} aria-label="حذف">🗑️</button>
-                        )}
+                        <button className="icon-btn" onClick={() => openEditModal(s)} aria-label="تعديل">✏️</button>
+                        <button className="icon-btn danger" onClick={() => handleDelete(s)} aria-label="حذف">🗑️</button>
                       </RowActions>
                     </td>
                   </tr>
@@ -312,7 +269,7 @@ function AdminStudents() {
             ))}
           </select>
         </div>
-        {editing && isSuper && (
+        {editing && (
           <div className="field">
             <label>الدور</label>
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
@@ -335,8 +292,6 @@ function AdminStudents() {
           }}
         />
       )}
-
-      {receiptsStudent && <StudentReceipts student={receiptsStudent} onClose={() => setReceiptsStudent(null)} />}
     </>
   );
 }

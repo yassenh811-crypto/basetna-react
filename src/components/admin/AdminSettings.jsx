@@ -28,10 +28,6 @@ function AdminSettings() {
   const [countryDial, setCountryDial] = useState('20');
   const [whatsapp, setWhatsapp] = useState('');
 
-  const [pay, setPay] = useState({ number: '', method: 'فودافون كاش', name: '', note: '' });
-  const [savingPay, setSavingPay] = useState(false);
-  const [payMsg, setPayMsg] = useState({ text: '', type: '' });
-
   const [demo, setDemo] = useState({ url: '', type: 'youtube', title: '', cover: '' });
   const [savingDemo, setSavingDemo] = useState(false);
   const [demoMsg, setDemoMsg] = useState({ text: '', type: '' });
@@ -48,12 +44,6 @@ function AdminSettings() {
 
       if (data) {
         setOwnerName(data.owner_name || '');
-        setPay({
-          number: data.payment_number || '',
-          method: data.payment_method || 'فودافون كاش',
-          name: data.payment_name || '',
-          note: data.payment_note || '',
-        });
         setDemo({
           url: data.demo_video_url || '',
           type: data.demo_video_type || 'youtube',
@@ -103,34 +93,6 @@ function AdminSettings() {
 
     setMsg({ text: '✅ تم الحفظ بنجاح', type: 'ok' });
     setTimeout(() => setMsg({ text: '', type: '' }), 3000);
-  }
-
-  async function handleSavePay(e) {
-    e.preventDefault();
-    setSavingPay(true);
-    setPayMsg({ text: '', type: '' });
-
-    const payload = {
-      payment_number: pay.number.trim() || null,
-      payment_method: pay.method.trim() || null,
-      payment_name: pay.name.trim() || null,
-      payment_note: pay.note.trim() || null,
-      updated_at: new Date().toISOString(),
-    };
-    const { error } = await supabase.from('settings').update(payload).eq('id', 1);
-    setSavingPay(false);
-
-    if (error) {
-      setPayMsg({
-        text: /payment_/.test(error.message || '')
-          ? '❌ لازم تشغّل ملف payments.sql في Supabase مرة واحدة الأول'
-          : '❌ ' + error.message,
-        type: 'error',
-      });
-      return;
-    }
-    setPayMsg({ text: '✅ تم الحفظ، الرقم ظاهر للي بيشتري', type: 'ok' });
-    setTimeout(() => setPayMsg({ text: '', type: '' }), 3500);
   }
 
   async function handleSaveDemo(e) {
@@ -210,35 +172,6 @@ function AdminSettings() {
             </button>
 
             {msg.text && <div className={`form-msg ${msg.type}`}>{msg.text}</div>}
-          </form>
-        </div>
-
-        <div className="card settings-card" style={{ gridColumn: '1 / -1' }}>
-          <h3>💳 بيانات التحويل (بتظهر للي بيشتري)</h3>
-          <form onSubmit={handleSavePay}>
-            <div className="field-row">
-              <div className="field">
-                <label>طريقة التحويل</label>
-                <input type="text" value={pay.method} onChange={(e) => setPay({ ...pay, method: e.target.value })} placeholder="فودافون كاش / انستا باي" />
-              </div>
-              <div className="field">
-                <label>رقم التحويل</label>
-                <input type="text" dir="ltr" inputMode="numeric" value={pay.number} onChange={(e) => setPay({ ...pay, number: e.target.value })} placeholder="01XXXXXXXXX" />
-              </div>
-            </div>
-            <div className="field">
-              <label>اسم صاحب الرقم <small className="muted">(اختياري)</small></label>
-              <input type="text" value={pay.name} onChange={(e) => setPay({ ...pay, name: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>ملاحظة للطالب <small className="muted">(اختياري)</small></label>
-              <textarea rows="2" value={pay.note} onChange={(e) => setPay({ ...pay, note: e.target.value })} placeholder="مثال: اكتب اسمك في رسالة التحويل" />
-            </div>
-            <small className="hint">من غير رقم تحويل، زرار "إرسال الطلب" بيفضل مقفول عند الزائر.</small>
-            <button className="btn btn-teal" type="submit" disabled={savingPay} style={{ marginTop: 14 }}>
-              {savingPay ? 'جاري الحفظ...' : '💾 حفظ بيانات التحويل'}
-            </button>
-            {payMsg.text && <div className={`form-msg ${payMsg.type}`}>{payMsg.text}</div>}
           </form>
         </div>
 

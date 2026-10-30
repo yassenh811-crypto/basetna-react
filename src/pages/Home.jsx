@@ -1,44 +1,47 @@
 /* ============================================================
    🏠 Home.jsx — الصفحة الرئيسية (عربي / English)
    ------------------------------------------------------------
-   - الاشتراك بالتحويل: زرار "اشترك" بيفتح نافذة فيها رقم التحويل
-     وإنشاء الحساب ورفع صورة التحويل
-   - الباقة ممكن تبقى لأكتر من مرحلة (شارات + فلتر بالمرحلة)
-   - فيديو تجريبي في أول الصفحة (من الإعدادات)
+   التغييرات:
+   - شلنا الكوبونات والخصم خالص (خانة الكوبون + الباقات المربوطة بكوبون)
+   - زرار «اشترك» بيفتح نافذة الدفع بالتحويل: رقم التحويل، وبعدها الاسم
+     وصورة التحويل (إجباري). مفيش واتساب في الاشتراك.
    ============================================================ */
 import { useEffect, useMemo, useState } from 'react';
 import { getLevels, getPackages, getCourseCount } from '../services/api';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n/useT';
+import { payLabels } from '../i18n/payLabels';
 import { packageLevelIds } from '../utils/packages';
 import DemoVideo from '../components/DemoVideo';
 import PurchaseModal from '../components/payments/PurchaseModal';
 
-/* الباقات الفعّالة */
+/* الباقات اللي بتظهر للناس.
+   (الباقات القديمة اللي كانت مخفية بكوبون لسه مخفية، احذفيها من لوحة الباقات) */
 async function loadPublicPackages() {
   const { data, error } = await supabase
     .from('packages')
     .select('*')
     .eq('is_active', true)
+    .eq('coupon_required', false)
     .order('price', { ascending: true });
   if (!error && data) return data;
-  return (await getPackages()) || [];
+  const fallback = await getPackages();
+  return (fallback || []).filter((p) => !p.coupon_required);
 }
 
 function Home() {
   const { setShowAuthModal, user } = useAuth();
   const { t, field, lang } = useT();
+  const P = payLabels(lang);
   const [levels, setLevels] = useState([]);
   const [packages, setPackages] = useState([]);
   const [courseCount, setCourseCount] = useState(0);
-  const [whatsapp, setWhatsapp] = useState('');
-  const [pay, setPay] = useState(null);
   const [demo, setDemo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
-  const [buyPkg, setBuyPkg] = useState(null);
+  const [buying, setBuying] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -52,14 +55,7 @@ function Home() {
         setLevels(levelsData);
         setPackages(packagesData);
         setCourseCount(count);
-
         const s = settingsRes?.data;
-        setWhatsapp(s?.whatsapp_number || '');
-        setPay(
-          s?.payment_number
-            ? { number: s.payment_number, method: s.payment_method || '', name: s.payment_name || '', note: s.payment_note || '' }
-            : null
-        );
         setDemo(
           s?.demo_video_url
             ? { url: s.demo_video_url, type: s.demo_video_type || 'youtube', title: s.demo_video_title || '', cover: s.demo_video_cover || '' }
@@ -82,10 +78,10 @@ function Home() {
     return m;
   }, [levels]);
 
-  /* البحث بيشتغل على الاسمين، والفلتر بالمرحلة */
+  /* الباقات بعد البحث والفلتر */
   const q = searchQuery.trim().toLowerCase();
   const filteredPackages = useMemo(() => {
-    let list = packages;
+    let list = [...packages];
     if (levelFilter !== 'all') list = list.filter((p) => packageLevelIds(p).includes(levelFilter));
     if (q) list = list.filter((p) => `${p.name_ar || ''} ${p.name_en || ''}`.toLowerCase().includes(q));
     return list;
@@ -100,7 +96,7 @@ function Home() {
   return (
     <div id="view-public">
       {/* HERO */}
-      <section className="hero" id="top">
+      <section className="hero">
         <div className="container row">
           <div className="hero-copy">
             <span className="eyebrow-pill">{t('heroEyebrow')}</span>
@@ -139,23 +135,6 @@ function Home() {
         </div>
       </section>
 
-      {/* شريط المستويات */}
-      {!loading && levels.length > 0 && (
-        <div className="container">
-          <div className="track-strip">
-            {levels.slice(0, 4).map((lv, i) => (
-              <div key={lv.id}>
-                <span className="number">{String(i + 1).padStart(2, '0')} —</span>
-                <span>
-                  {field(lv, 'name')}
-                  <small>{lang === 'ar' ? lv.name_en : lv.name_ar}</small>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* فيديو تجريبي (بيظهر لو الأدمن حط رابط) */}
       {demo && <DemoVideo demo={demo} lang={lang} />}
 
@@ -164,7 +143,6 @@ function Home() {
         <div className="container">
           <div className="section-head">
             <div>
-              <div className="eyebrow">LEVELS</div>
               <h2>{t('levelsTitle')}</h2>
               <p className="section-sub">{t('levelsSub')}</p>
             </div>
@@ -193,12 +171,7 @@ function Home() {
       {/* HOW IT WORKS — ترتيب خطوات حقيقي */}
       <section className="block how" id="how">
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow">HOW IT WORKS</div>
-              <h2>{t('howTitle')}</h2>
-            </div>
-          </div>
+          <div className="section-head"><h2>{t('howTitle')}</h2></div>
           <div className="grid grid-3">
             {steps.map((s, i) => (
               <div className="card bt-step" key={i}>
@@ -216,9 +189,8 @@ function Home() {
         <div className="container">
           <div className="section-head">
             <div>
-              <div className="eyebrow">PACKAGES</div>
               <h2>{t('packagesTitle')}</h2>
-              <p className="section-sub">{t('packagesSub')}</p>
+              <p className="section-sub">{P.packagesSub}</p>
             </div>
           </div>
 
@@ -272,8 +244,8 @@ function Home() {
                     {p.price} <small>{t('priceUnit', { days: p.duration_days })}</small>
                   </div>
                   <p className="desc">{field(p, 'description')}</p>
-                  <button className="btn btn-teal btn-block" onClick={() => setBuyPkg(p)}>
-                    {t('subscribe')}
+                  <button className="btn btn-teal btn-block" onClick={() => setBuying(p)}>
+                    {P.subscribeBtn}
                   </button>
                 </div>
               ))
@@ -282,16 +254,7 @@ function Home() {
         </div>
       </section>
 
-      {buyPkg && (
-        <PurchaseModal
-          pkg={buyPkg}
-          levels={levels}
-          pay={pay}
-          whatsapp={whatsapp}
-          lang={lang}
-          onClose={() => setBuyPkg(null)}
-        />
-      )}
+      {buying && <PurchaseModal pkg={buying} levels={levels} onClose={() => setBuying(null)} />}
     </div>
   );
 }

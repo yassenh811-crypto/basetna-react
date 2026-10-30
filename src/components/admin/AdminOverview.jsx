@@ -7,14 +7,13 @@ import { supabase } from '../../services/supabase';
 const CARDS = [
   { key: 'students', icon: '👥', label: 'إجمالي الطلاب' },
   { key: 'active', icon: '✅', label: 'اشتراكات فعّالة' },
-  { key: 'pending', icon: '💳', label: 'طلبات دفع جديدة' },
   { key: 'expiring', icon: '⏳', label: 'بتنتهي خلال 7 أيام' },
   { key: 'courses', icon: '🎬', label: 'عدد الكورسات' },
   { key: 'levels', icon: '📚', label: 'المراحل الدراسية' },
 ];
 
 function AdminOverview({ profile }) {
-  const [kpis, setKpis] = useState({ students: 0, active: 0, pending: 0, expiring: 0, courses: 0, levels: 0 });
+  const [kpis, setKpis] = useState({ students: 0, active: 0, expiring: 0, courses: 0, levels: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,10 +24,9 @@ function AdminOverview({ profile }) {
       const in7 = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
       const head = { count: 'exact', head: true };
 
-      const [s, a, p, e, c, l] = await Promise.all([
+      const [s, a, e, c, l] = await Promise.all([
         supabase.from('profiles').select('*', head).eq('role', 'student'),
         supabase.from('subscriptions').select('*', head).eq('status', 'active').or(`end_date.gte.${todayStr},end_date.is.null`),
-        supabase.from('payment_requests').select('*', head).eq('status', 'pending'),
         supabase.from('subscriptions').select('*', head).eq('status', 'active').gte('end_date', todayStr).lte('end_date', in7),
         supabase.from('courses').select('*', head),
         supabase.from('grade_levels').select('*', head),
@@ -37,7 +35,6 @@ function AdminOverview({ profile }) {
       setKpis({
         students: s.count || 0,
         active: a.count || 0,
-        pending: p.count || 0,
         expiring: e.count || 0,
         courses: c.count || 0,
         levels: l.count || 0,
