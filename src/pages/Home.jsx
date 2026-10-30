@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n/useT';
 import { packageLevelIds } from '../utils/packages';
 import DemoVideo from '../components/DemoVideo';
-import PurchaseModal from '../components/PurchaseModal';
+import PurchaseModal from '../components/payments/PurchaseModal';
 
 /* الباقات الفعّالة */
 async function loadPublicPackages() {
