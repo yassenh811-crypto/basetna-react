@@ -1,9 +1,7 @@
 /* ============================================================
    AdminPayments — التحويلات والحسابات (لوحة الأونر)
    1) رقم التحويل اللي بيظهر للطلاب
-   2) طلبات التحويل: الاسم + الكود + صورة الإيصال
-      - طلب من غير حساب: «موافقة وإنشاء حساب» (إيميل + باسورد) وبعدها «تم» وتتفعّل الباقة
-      - طلب من طالب مسجّل: «تفعيل الاشتراك» / رفض
+   2) طلبات التحويل: صورة الإيصال + تفعيل الاشتراك / رفض
    3) قفل وفتح أي حساب
    ============================================================ */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -11,7 +9,6 @@ import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useT } from '../../i18n/useT';
 import { payLabels } from '../../i18n/payLabels';
-import CreateAccountModal from '../payments/CreateAccountModal';
 
 const URL_TTL_MS = 45 * 60 * 1000;
 
@@ -130,8 +127,6 @@ function AdminPayments() {
   const [busyId, setBusyId] = useState(null);
   const [actionError, setActionError] = useState('');
   const [viewer, setViewer] = useState(null);
-  const [creating, setCreating] = useState(null); /* الطلب اللي بنفتح له حساب */
-  const [reqQuery, setReqQuery] = useState('');
   const urlCache = useRef({});
   const debounceRef = useRef(null);
 
@@ -208,12 +203,7 @@ function AdminPayments() {
     return c;
   }, [requests]);
 
-  const visibleRequests = useMemo(() => {
-    const q = reqQuery.trim().toLowerCase();
-    return requests
-      .filter((r) => filter === 'all' || r.status === filter)
-      .filter((r) => !q || `${r.full_name || ''} ${r.code || ''}`.toLowerCase().includes(q));
-  }, [requests, filter, reqQuery]);
+  const visibleRequests = requests.filter((r) => filter === 'all' || r.status === filter);
 
   const visibleAccounts = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -312,16 +302,6 @@ function AdminPayments() {
             ))}
           </div>
 
-          <div className="search-box bc-acc-search">
-            <input
-              type="search"
-              placeholder={P.searchRequests}
-              aria-label={P.searchRequests}
-              value={reqQuery}
-              onChange={(e) => setReqQuery(e.target.value)}
-            />
-          </div>
-
           {loadingReq ? (
             <div className="bc-state">{P.loading}</div>
           ) : visibleRequests.length === 0 ? (
@@ -346,13 +326,7 @@ function AdminPayments() {
                     <div className="bc-req-body">
                       <div className="bc-req-top">
                         <strong>{r.full_name}</strong>
-                        {r.code && (
-                          <bdi dir="ltr" className="bc-req-code" title={P.colCode}>
-                            {r.code}
-                          </bdi>
-                        )}
                         <span className={`badge bc-st-${r.status}`}>{statusLabel[r.status] || r.status}</span>
-                        {!r.user_id && r.status === 'pending' && <span className="badge">{P.noAccountYet}</span>}
                       </div>
                       <div className="bc-req-meta">
                         <span>
@@ -386,15 +360,9 @@ function AdminPayments() {
 
                     {r.status === 'pending' && (
                       <div className="bc-req-actions">
-                        {r.user_id ? (
-                          <button type="button" className="btn btn-teal btn-sm" disabled={busyId === r.id} onClick={() => approve(r)}>
-                            {P.approve}
-                          </button>
-                        ) : (
-                          <button type="button" className="btn btn-gold btn-sm" disabled={busyId === r.id} onClick={() => setCreating(r)}>
-                            {P.approveCreate}
-                          </button>
-                        )}
+                        <button type="button" className="btn btn-teal btn-sm" disabled={busyId === r.id} onClick={() => approve(r)}>
+                          {P.approve}
+                        </button>
                         <button type="button" className="btn btn-ghost btn-sm" disabled={busyId === r.id} onClick={() => reject(r)}>
                           {P.reject}
                         </button>
@@ -446,10 +414,6 @@ function AdminPayments() {
             </ul>
           )}
         </>
-      )}
-
-      {creating && (
-        <CreateAccountModal request={creating} onClose={() => setCreating(null)} onDone={loadRequests} />
       )}
 
       {viewer && (
