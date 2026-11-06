@@ -1,15 +1,14 @@
 /* ============================================================
    🔥 AdminDaily — إدارة أسئلة التحدي اليومي
-   - ضيف أسئلة لكل المراحل أو لمرحلة معينة
-   - السؤال بيتبدّل تلقائي كل يوم، أو حدد تاريخ لسؤال بعينه
-   - توليد أسئلة بالذكاء الاصطناعي
    ============================================================ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabase';
 import AdminFormModal from './AdminFormModal';
 import { AdminToolbar, StateRow, RowActions } from './AdminUI';
 
-const API_URL = import.meta.env.VITE_AI_API_URL || 'https://basetna-server.vercel.app';
+// شيل أي سلاش في الآخر عشان نمنع مشكلة الشرطتين
+const baseUrl = import.meta.env.VITE_AI_API_URL || 'https://basetna-server.vercel.app';
+const API_URL = baseUrl.replace(/\/$/, '');
 const LETTERS = ['أ', 'ب', 'ج', 'د', 'هـ', 'و'];
 
 const EMPTY = { level: '', question: '', options: ['', '', '', ''], correct: 0, explanation: '', active_date: '', is_active: true };
@@ -50,7 +49,6 @@ function AdminDaily() {
 
   const levelName = (id) => (id ? levels.find((l) => String(l.id) === String(id))?.name_ar || '—' : 'كل المراحل');
 
-  /* ---------- إضافة / تعديل ---------- */
   function openAdd() {
     setEditing(null);
     setForm(EMPTY);
@@ -128,7 +126,7 @@ function AdminDaily() {
     setItems((list) => list.map((x) => (x.id === it.id ? { ...x, is_active: !it.is_active } : x)));
   }
 
-  /* ---------- توليد بالذكاء الاصطناعي ---------- */
+  /* ---------- توليد بالذكاء الاصطناعي (معالج ضد الـ 404 و HTML) ---------- */
   async function handleGenerate(e) {
     e.preventDefault();
     setGenerating(true);
@@ -154,6 +152,13 @@ function AdminDaily() {
           maxAttempts: 1,
         }),
       });
+
+      // ✅ التحقق من أن الرد JSON وليس صفحة HTML (حل مشكلة 404)
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        return fail("السيرفر رجع رد غير متوقع (صفحة ويب بدل بيانات). اتأكد إن رابط الـ API شغال.");
+      }
+
       const data = await res.json();
       if (!res.ok) return fail(data.error || 'فشل التوليد');
       if (!Array.isArray(data.questions)) return fail('الرد مش فيه أسئلة');
@@ -255,7 +260,6 @@ function AdminDaily() {
         </table>
       </div>
 
-      {/* إضافة / تعديل */}
       <AdminFormModal
         open={modalOpen}
         wide
@@ -317,7 +321,6 @@ function AdminDaily() {
         {msg && <div className="form-msg error">{msg}</div>}
       </AdminFormModal>
 
-      {/* توليد بالذكاء الاصطناعي */}
       <AdminFormModal
         open={genOpen}
         title="🤖 توليد أسئلة بالذكاء الاصطناعي"

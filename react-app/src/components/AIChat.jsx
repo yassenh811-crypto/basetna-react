@@ -3,6 +3,7 @@
    ============================================================ */
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../services/supabase'; // عشان نجيب التوكن
 
 function AIChat({ open, onClose }) {
   const { user } = useAuth();
@@ -10,6 +11,9 @@ function AIChat({ open, onClose }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // ✅ رابط السيرفر بتاعك (اللي شغال على Vercel)
+  const API_URL = 'https://basetna-server.vercel.app';
 
   // رسالة ترحيبية
   useEffect(() => {
@@ -35,11 +39,28 @@ function AIChat({ open, onClose }) {
     setLoading(true);
 
     try {
-      // 🚀 بنبعت الطلب لـ /api/ai (المسار ده موجود في نفس مشروع Vercel بتاعك)
-      const res = await fetch('/api/ai', {
+      // 1. بنجيب التوكن بتاع المستخدم (السيرفر محتاجه عشان يتأكد إنك مسجل دخول)
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        setMessages(prev => [...prev, { role: 'bot', text: '⚠️ سجّل دخولك الأول عشان تقدر تستخدم المساعد.' }]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. بنبعت الطلب للسيرفر (مع التوكن)
+      const res = await fetch(`${API_URL}/api/ai`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: userMsg })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // ✅ مهم جداً
+        },
+        body: JSON.stringify({ 
+          messages: [
+            { role: 'user', content: userMsg } // ✅ السيرفر مستني messages
+          ]
+        })
       });
 
       const data = await res.json();
