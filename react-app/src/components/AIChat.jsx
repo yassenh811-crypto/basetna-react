@@ -1,139 +1,108 @@
 /* ============================================================
-   🤖 AIChat — المساعد الذكي (Panel بس، الزرار في SupportFabs)
+   🤖 AIChat — المساعد الذكي
    ============================================================ */
-import { useEffect, useRef, useState } from 'react';
-import { useAIChat } from '../context/AIChatContext';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-function escapeHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])
-  );
-}
-
-/* بيعمل Bold و code، وبيلفّ الجمل الإنجليزي في span.en عشان يتعرض صح جوه العربي */
-function renderText(text) {
-  let h = escapeHtml(text);
-  h = h.replace(/```([\s\S]*?)```/g, (m, c) => `<code class="en">${c.trim()}</code>`);
-  h = h.replace(/`([^`\n]+)`/g, '<code class="en">$1</code>');
-  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
-  h = h
-    .split(/(<code class="en">[\s\S]*?<\/code>)/)
-    .map((seg, i) =>
-      i % 2
-        ? seg
-        : seg.replace(
-            /(^|[\s(])([A-Za-z][\w'’.\-]*(?:[ \t]+[A-Za-z0-9][\w'’.\-]*)+)/g,
-            (m, p, w) => p + '<span class="en">' + w + '</span>'
-          )
-    )
-    .join('');
-  return h;
-}
-
-function AIChat() {
+function AIChat({ open, onClose }) {
   const { user } = useAuth();
-  const { history, isOpen, setIsOpen, busy, sendMessage, clearChat, config } = useAIChat();
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const endRef = useRef(null);
-  const taRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
 
+  // رسالة ترحيبية
   useEffect(() => {
-    if (isOpen) {
-      const t = setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      return () => clearTimeout(t);
+    if (open && messages.length === 0) {
+      setMessages([
+        { role: 'bot', text: 'أهلاً بيك! أنا مساعد بسّطنا الإنجليزي. إزاي أقدر أساعدك النهاردة؟ 👋' }
+      ]);
     }
-  }, [history, isOpen, busy]);
+  }, [open]);
 
+  // التمرير لآخر رسالة
   useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e) => e.key === 'Escape' && setIsOpen(false);
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, setIsOpen]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  async function send(text) {
-    const value = (text ?? input).trim();
-    if (!value || busy) return;
+  async function sendMessage(e) {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMsg = input.trim();
     setInput('');
-    if (taRef.current) taRef.current.style.height = 'auto';
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setLoading(true);
+
     try {
-      await sendMessage(value);
+      // 🚀 بنبعت الطلب لـ /api/ai (المسار ده موجود في نفس مشروع Vercel بتاعك)
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: userMsg })
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'فشل الاتصال بالمساعد');
+
+      setMessages(prev => [...prev, { role: 'bot', text: data.reply || 'معلش، مقدرتش أفهم قصدك.' }]);
     } catch (err) {
-      /* الخطأ بيتعالج في الـ context */
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'bot', text: '⚠️ المساعد مش متظبط على السيرفر.' }]);
+    } finally {
+      setLoading(false);
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      send();
-    }
-  }
-
-  if (!user || !isOpen) return null;
+  if (!open) return null;
 
   return (
-    <div className="bai-overlay open" onClick={() => setIsOpen(false)}>
-      <div className="bai-panel" role="dialog" aria-modal="true" aria-label={config.assistantName} onClick={(e) => e.stopPropagation()}>
+    <div className="bai-overlay open" onClick={onClose}>
+      <div className="bai-panel" onClick={e => e.stopPropagation()}>
         <div className="bai-head">
           <div className="bai-ava">🤖</div>
           <div>
-            <h3>{config.assistantName}</h3>
-            <p>{busy ? 'بيفكر...' : 'جاهز للمساعدة'}</p>
+            <h3 className="bai-title">مساعد بسّطنا</h3>
+            <p>جاهز للمساعدة</p>
           </div>
           <div className="bai-tools">
-            <button type="button" title="محادثة جديدة" aria-label="محادثة جديدة" onClick={clearChat}>🗑</button>
-            <button type="button" title="إغلاق" aria-label="إغلاق" onClick={() => setIsOpen(false)}>✕</button>
+            <button onClick={() => setMessages([])} title="مسح المحادثة">🗑️</button>
+            <button onClick={onClose}>✕</button>
           </div>
         </div>
 
         <div className="bai-body">
-          {history.length === 0 ? (
-            <div className="bai-msg bot">{config.greeting}</div>
-          ) : (
-            history.map((m, i) => (
-              <div
-                key={i}
-                className={`bai-msg ${m.role === 'user' ? 'me' : 'bot'}`}
-                dangerouslySetInnerHTML={{
-                  __html: m.role === 'user' ? escapeHtml(m.content) : renderText(m.content),
-                }}
-              />
-            ))
+          {messages.map((msg, i) => (
+            <div key={i} className={`bai-msg ${msg.role === 'user' ? 'me' : 'bot'}`}>
+              {msg.text}
+            </div>
+          ))}
+          {loading && (
+            <div className="bai-typing">
+              <span /><span /><span />
+            </div>
           )}
-          {busy && (
-            <div className="bai-typing"><span /><span /><span /></div>
-          )}
-          <div ref={endRef} />
+          <div ref={messagesEndRef} />
         </div>
 
-        {history.length === 0 && (
-          <div className="bai-quick">
-            {config.quickPrompts.map((p) => (
-              <button key={p} type="button" onClick={() => send(p)}>{p}</button>
-            ))}
-          </div>
-        )}
-
-        <div className="bai-foot">
+        <form className="bai-foot" onSubmit={sendMessage}>
           <textarea
-            ref={taRef}
-            rows="1"
-            placeholder="اكتب سؤالك هنا..."
             value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px';
+            onChange={e => setInput(e.target.value)}
+            placeholder="اكتب سؤالك هنا..."
+            rows={1}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(e);
+              }
             }}
-            onKeyDown={handleKeyDown}
-            disabled={busy}
           />
-          <button className="bai-send" type="button" onClick={() => send()} disabled={busy || !input.trim()} aria-label="إرسال">
-            ➤
+          <button type="submit" className="bai-send" disabled={loading || !input.trim()}>
+            {loading ? '...' : '⬆️'}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
